@@ -16,7 +16,6 @@ import time
 
 import pandas as pd
 
-
 #시장이 열렸는지 여부 체크! #토요일 일요일은 확실히 안열리니깐 제외! 
 def IsMarketOpen():
 
@@ -92,6 +91,8 @@ def IsMarketOpen():
 def PriceAdjust(price):
     
     return round(float(price),2)
+
+
 
 
 #환율 리턴!
@@ -315,7 +316,7 @@ def GetBalance(st = "USD"):
                 #총 평가 금액
                 balanceDict['TotalMoney'] = float(balanceDict['StockMoney']) + float(balanceDict['RemainMoney'])
 
-        #print("RATE: ", Rate)
+        print("RATE: ", Rate)
 
         return balanceDict
        
@@ -327,9 +328,6 @@ def GetBalance(st = "USD"):
 #미국 보유 주식 리스트 
 def GetMyStockList(st = "USD"):
 
-
-    time.sleep(0.2)
-    
 
     PATH = "uapi/overseas-stock/v1/trading/inquire-balance"
     URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
@@ -366,9 +364,14 @@ def GetMyStockList(st = "USD"):
         
         SeqKey = ""
 
+        count = 0
+
         #드물지만 보유종목이 아주 많으면 한 번에 못가져 오므로 SeqKey를 이용해 연속조회를 하기 위한 반복 처리 
         while DataLoad:
-                
+
+            time.sleep(0.2)
+
+                    
             # 헤더 설정
             headers = {"Content-Type":"application/json", 
                     "authorization": f"Bearer {Common.GetToken(Common.GetNowDist())}",
@@ -452,10 +455,16 @@ def GetMyStockList(st = "USD"):
 
             else:
                 print("Error Code : " + str(res.status_code) + " | " + res.text)
-                # return None
-           
+                if res.json()["msg_cd"] == "EGW00123":
+                    DataLoad = False
+                    
+                count += 1
+
+                if count > 100:
+                    DataLoad = False
         
     return StockList
+        
         
 
 
@@ -690,6 +699,7 @@ def MakeBuyLimitOrder(stockcode, amt, price):
             #매수 가능한수량으로 보정
             amt = AdjustPossibleAmt(stockcode, amt)
 
+
     except Exception as e:
         print("Exception")
 
@@ -805,7 +815,7 @@ def MakeSellLimitOrder(stockcode, amt, price):
         return None
 
 #미국의 나스닥,뉴욕거래소, 아멕스를 뒤져서 있는 해당 주식의 거래소 코드를 리턴합니다!!
-def GetMarketCodeUS(stock_code):
+def GetMarketCodeUS(stock_code, return_ori_market = False):
 
     time.sleep(0.2)
         
@@ -850,13 +860,19 @@ def GetMarketCodeUS(stock_code):
                 continue # 다음 시도를 한다!
             else:
                 #print(try_market, " is Succeed!! ")
-
-                if try_market == "NYS":
-                    return "NYSE"
-                elif try_market == "AMS":
-                    return "AMEX"
+                
+                if return_ori_market == True:
+                    
+                    return try_market
+                
                 else:
-                    return "NASD"
+
+                    if try_market == "NYS":
+                        return "NYSE"
+                    elif try_market == "AMS":
+                        return "AMEX"
+                    else:
+                        return "NASD"
 
         else:
             print("Error Code : " + str(res.status_code) + " | " + res.text)
@@ -1199,7 +1215,6 @@ def CancelModifyOrder(stockcode, order_num , order_amt , order_price, mode = "CA
         return res.json()["msg_cd"]
 
 
-
 def CancelAllOrders(stockcode = "", side = "ALL"):
 
     OrderList = GetOrderList(stockcode,side)
@@ -1214,3 +1229,91 @@ def CancelAllOrders(stockcode = "", side = "ALL"):
 
 ############################################################################################################################################################
     
+#p_code -> D:일, W:주, M:월 
+def GetOhlcv(stock_code, p_code):
+
+    time.sleep(0.2)
+    
+    PATH = "/uapi/overseas-price/v1/quotations/dailyprice"
+    URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+
+    gubun = 0
+    if p_code == 'W':
+        gubun = 1
+    elif p_code == 'M':
+        gubun = 2
+
+    # 헤더 설정
+    headers = {"Content-Type":"application/json", 
+            "authorization": f"Bearer {Common.GetToken(Common.GetNowDist())}",
+            "appKey":Common.GetAppKey(Common.GetNowDist()),
+            "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+            "tr_id":"HHDFS76240000"
+            }
+
+    date_str = Common.GetNowDateStr("US")
+    
+    params = {
+        "AUTH": "",
+        "EXCD": GetMarketCodeUS(stock_code,True),
+        "SYMB": stock_code,
+        "GUBN" : str(gubun),
+        "BYMD": date_str,
+        "MODP": "1"
+    }
+
+    # 호출
+    res = requests.get(URL, headers=headers, params=params)
+    
+
+    if res.status_code == 200 and res.json()["rt_cd"] == '0':
+
+        ResultList = res.json()['output2']
+
+        
+        df = list()
+
+        if len(pd.DataFrame(ResultList)) > 0:
+
+            OhlcvList = list()
+
+
+            for ohlcv in ResultList:
+                        
+                if len(ohlcv) == 0:
+                    continue
+                
+                OhlcvData = dict()
+
+                try:
+                    if ohlcv['open'] != "":
+                        
+                        OhlcvData['Date'] = ohlcv['xymd']
+                        OhlcvData['open'] = float(ohlcv['open'])
+                        OhlcvData['high'] = float(ohlcv['high'])
+                        OhlcvData['low'] = float(ohlcv['low'])
+                        OhlcvData['close'] = float(ohlcv['clos'])
+                        OhlcvData['volume'] = float(ohlcv['tvol'])
+                        OhlcvData['value'] = float(ohlcv['tamt'])
+
+                        OhlcvList.append(OhlcvData)
+                except Exception as e:
+                    print("E:", e)
+
+            if len(OhlcvList) > 0:
+                    
+                df = pd.DataFrame(OhlcvList)
+                df = df.set_index('Date')
+
+                df = df.sort_values(by="Date")
+                df.insert(6,'change',(df['close'] - df['close'].shift(1)) / df['close'].shift(1))
+
+                df[[ 'open', 'high', 'low', 'close', 'volume', 'change']] = df[[ 'open', 'high', 'low', 'close', 'volume', 'change']].apply(pd.to_numeric)
+
+        return df
+
+
+    else:
+        print("Error Code : " + str(res.status_code) + " | " + res.text)
+        return None
+

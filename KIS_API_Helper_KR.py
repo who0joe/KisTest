@@ -17,7 +17,6 @@ import time
 import pandas as pd
 
 
-
 #시장이 열렸는지 여부 체크! #토요일 일요일은 확실히 안열리니깐 제외! 
 def IsMarketOpen():
 
@@ -94,7 +93,10 @@ def PriceAdjust(price, stock_code):
     return adjust_price
 
 
+
+
     
+
 #나의 계좌 잔고!
 def GetBalance():
 
@@ -133,7 +135,6 @@ def GetBalance():
     # 호출
     res = requests.get(URL, headers=headers, params=params)
     #pprint.pprint(res.json())
-
     if res.status_code == 200 and res.json()["rt_cd"] == '0':
 
         result = res.json()['output2'][0]
@@ -173,7 +174,6 @@ def GetBalance():
         print("Error Code : " + str(res.status_code) + " | " + res.text)
         return res.json()["msg_cd"]
     
-
 
 #한국 보유 주식 리스트!
 def GetMyStockList():
@@ -280,6 +280,7 @@ def GetMyStockList():
 
 
 
+
 ############################################################################################################################################################
 
 #국내 주식현재가 시세
@@ -306,7 +307,7 @@ def GetCurrentPrice(stock_code):
     #pprint.pprint(res.json())
 
     if res.status_code == 200 and res.json()["rt_cd"] == '0':
-        return int(res.json()['output']['stck_prpr'])   
+        return int(res.json()['output']['stck_prpr'])
     else:
         print("Error Code : " + str(res.status_code) + " | " + res.text)
         return res.json()["msg_cd"]
@@ -340,6 +341,10 @@ def GetHoga(stock_code):
     else:
         print("Error Code : " + str(res.status_code) + " | " + res.text)
         return res.json()["msg_cd"]
+
+
+
+
 
 
 ############################################################################################################################################################
@@ -814,7 +819,8 @@ def GetOrderList(stockcode = "", side = "ALL", status = "ALL", limit = 5):
 
 
 #주문 취소/수정 함수
-def CancelModifyOrder(stockcode, order_num1 , order_num2 , order_amt , order_price, mode = "CANCEL" ,order_type = "LIMIT"):
+def CancelModifyOrder(stockcode, order_num1 , order_num2 , order_amt , order_price, mode = "CANCEL" ,order_type = "LIMIT" , order_dist = "NONE"):
+
 
     time.sleep(0.2)
 
@@ -891,5 +897,84 @@ def CancelAllOrders(stockcode = "", side = "ALL"):
 
 
 ############################################################################################################################################################
- 
+    
+#p_code -> D:일, W:주, M:월, Y:년
+def GetOhlcv(stock_code,p_code):
 
+    time.sleep(0.2)
+
+    PATH = "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
+    URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+
+
+
+    # 헤더 설정
+    headers = {"Content-Type":"application/json", 
+            "authorization": f"Bearer {Common.GetToken(Common.GetNowDist())}",
+            "appKey":Common.GetAppKey(Common.GetNowDist()),
+            "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+            "tr_id":"FHKST03010100"}
+
+    params = {
+        "FID_COND_MRKT_DIV_CODE": "J",
+        "FID_INPUT_ISCD": stock_code,
+        "FID_INPUT_DATE_1": Common.GetFromNowDateStr("KR","NONE",-36500),
+        "FID_INPUT_DATE_2": Common.GetNowDateStr("KR"),
+        "FID_PERIOD_DIV_CODE": p_code,
+        "FID_ORG_ADJ_PRC": "0"
+    }
+
+    # 호출
+    res = requests.get(URL, headers=headers, params=params)
+
+    if res.status_code == 200 and res.json()["rt_cd"] == '0':
+
+        ResultList = res.json()['output2']
+
+
+        df = list()
+
+
+        if len(pd.DataFrame(ResultList)) > 0:
+
+            OhlcvList = list()
+
+
+            for ohlcv in ResultList:
+                
+                if len(ohlcv) == 0:
+                    continue
+
+                OhlcvData = dict()
+
+                try:
+                    if ohlcv['stck_oprc'] != "":
+                        
+                        OhlcvData['Date'] = ohlcv['stck_bsop_date']
+                        OhlcvData['open'] = float(ohlcv['stck_oprc'])
+                        OhlcvData['high'] = float(ohlcv['stck_hgpr'])
+                        OhlcvData['low'] = float(ohlcv['stck_lwpr'])
+                        OhlcvData['close'] = float(ohlcv['stck_clpr'])
+                        OhlcvData['volume'] = float(ohlcv['acml_vol'])
+                        OhlcvData['value'] = float(ohlcv['acml_tr_pbmn'])
+
+                        OhlcvList.append(OhlcvData)
+                except Exception as e:
+                    print("E:", e)
+                    
+            if len(OhlcvList) > 0:
+                        
+                df = pd.DataFrame(OhlcvList)
+                df = df.set_index('Date')
+
+                df = df.sort_values(by="Date")
+                df.insert(6,'change',(df['close'] - df['close'].shift(1)) / df['close'].shift(1))
+                    
+                df[[ 'open', 'high', 'low', 'close', 'volume', 'change']] = df[[ 'open', 'high', 'low', 'close', 'volume', 'change']].apply(pd.to_numeric)
+
+
+
+        return df
+    else:
+        print("Error Code : " + str(res.status_code) + " | " + res.text)
+        return res.json()["msg_cd"]
