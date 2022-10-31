@@ -1,6 +1,6 @@
 import KIS_Common as Common
 import KIS_API_Helper_US as KisUS
-#import KIS_API_Helper_KR as KisKR
+import KIS_API_Helper_KR as KisKR
 
 import pprint
 import time
@@ -12,13 +12,13 @@ Common.SetChangeMode("VIRTUAL")
 
 
 #현재 장이 열렸는지 여부
-if KisUS.IsMarketOpen() == True:
+if KisKR.IsMarketOpen() == True:
     print("Maket is Open!!")
 else:
     print("Maket is Closed!!")
 
 
-'''
+
 print("                                     ")
 print("------------------------------------")
 print("                                     ")
@@ -45,9 +45,9 @@ print("------------------------------------")
 print("                                     ")
 
 
-stock_code = "AAPL" #애플 종목코드
+stock_code = "005930" #애플 종목코드
 
-current_price = KisUS.GetCurrentPrice(stock_code)
+current_price = KisKR.GetCurrentPrice(stock_code)
 
 #애플의 현재 가격 
 print(current_price)
@@ -60,7 +60,7 @@ print("                                     ")
 
 
 #애플 1주 현재가로 지정가 매수
-pprint.pprint(KisUS.MakeBuyLimitOrder(stock_code,1,current_price))
+pprint.pprint(KisKR.MakeBuyLimitOrder(stock_code,1,current_price))
 
 print("                                     ")
 print("------------------------------------")
@@ -73,7 +73,7 @@ print("                                     ")
 buy_price = current_price * 1.1
 
 #애플 2주를 현재가보다 10%나 높은금액에 매수하겠다고 주문을 넣으면??
-pprint.pprint(KisUS.MakeBuyLimitOrder(stock_code,2,buy_price))
+pprint.pprint(KisKR.MakeBuyLimitOrder(stock_code,2,buy_price))
 #바로 주문이 체결되는데 시장가로 체결되는걸 볼 수 있음
 
 print("                                     ")
@@ -89,7 +89,7 @@ time.sleep(3.0)
 sell_price = current_price * 1.1
 
 #애플 1주 10%위에 지정가 매도 주문
-pprint.pprint(KisUS.MakeSellLimitOrder(stock_code,1,sell_price))
+#pprint.pprint(KisKR.MakeSellLimitOrder(stock_code,1,sell_price))
 
 print("                                     ")
 print("------------------------------------")
@@ -102,7 +102,7 @@ print("                                     ")
 sell_price = current_price * 0.9
 
 #애플 1주 10% 아래에 지정가 매도 주문을 넣으면???
-pprint.pprint(KisUS.MakeSellLimitOrder(stock_code,1,sell_price))
+pprint.pprint(KisKR.MakeSellLimitOrder(stock_code,1,sell_price))
 #바로 주문이 체결되는데 시장가로 체결되는걸 볼 수 있음
 
 print("                                     ")
@@ -115,15 +115,21 @@ time.sleep(3.0)
 
 
 #전체 주문리스트에서 현재 오픈된 주문을 가져온다
-pprint.pprint(KisUS.GetOrderList("","ALL","OPEN"))
+pprint.pprint(KisKR.GetOrderList("","ALL","OPEN"))
 
 print("                                     ")
 print("------------------------------------")
 print("                                     ")
 
-'''
+##미체결 모두 취소
 
-##추가
+
+##보유주식 모두 시장가매도
+time.sleep(10.0)
+pprint.pprint(KisKR.SellAllStock())
+
+
+#########################################################################################################
 
 '''
 
@@ -230,5 +236,6 @@ pprint.pprint(Common.GetOhlcv2("US","AAPL"))
 
 
 
-pprint.pprint(Common.GetOhlcv("KR","005930"))
-pprint.pprint(Common.GetOhlcv("US","TQQQ"))
+#pprint.pprint(Common.GetOhlcv("KR","005930"))
+#pprint.pprint(Common.GetOhlcv("US","TQQQ"))
+

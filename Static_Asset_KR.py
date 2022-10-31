@@ -45,7 +45,7 @@ Is_Rebalance_Go = False
 YMDict = dict()
 
 #파일 경로입니다.
-static_asset_tym_file_path = "/var/autobot/Static_Asset_KR_YM1.json"
+static_asset_tym_file_path = "/Users/TY/Documents/class101/Static_Asset_KR_YM1.json"
 try:
     with open(static_asset_tym_file_path, 'r') as json_file:
         YMDict = json.load(json_file)
@@ -73,21 +73,19 @@ else:
 
 
 
-
-
 #마켓이 열렸는지 여부~!
 IsMarketOpen = KisKR.IsMarketOpen()
 
-if IsMarketOpen == True:
-    print("Market Is Open!!!!!!!!!!!")
-    #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
-    if Is_Rebalance_Go == True:
-        line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 열려서 포트폴리오 리밸런싱 가능!!")
-else:
-    print("Market Is Close!!!!!!!!!!!")
-    #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
-    if Is_Rebalance_Go == True:
-        line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 닫혀서 포트폴리오 리밸런싱 불가능!!")
+# if IsMarketOpen == True:
+#     print("Market Is Open!!!!!!!!!!!")
+#     #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
+#     if Is_Rebalance_Go == True:
+#         line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 열려서 포트폴리오 리밸런싱 가능!!")
+# else:
+#     print("Market Is Close!!!!!!!!!!!")
+#     #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
+#     if Is_Rebalance_Go == True:
+#         line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 닫혀서 포트폴리오 리밸런싱 불가능!!")
 
 
 
@@ -356,16 +354,16 @@ for stock_info in MyPortfolioList:
         
         
         
-    #라인 메시지랑 로그를 만들기 위한 문자열 
-    line_data =  (">> " + KisKR.GetStockName(stock_code) + "(" + stock_code + ") << \n비중: " + str(round(stock_now_rate * 100.0,2)) + "/" + str(round(stock_target_rate * 100.0,2)) 
-    + "% \n수익: " + str(format(round(stock_revenue_money), ',')) + "("+ str(round(stock_revenue_rate,2)) 
-    + "%) \n총평가금액: " + str(format(round(stock_eval_totalmoney), ',')) 
-    + "\n리밸런싱수량: " + str(stock_info['stock_rebalance_amt']) + "\n----------------------\n")
+    # #라인 메시지랑 로그를 만들기 위한 문자열 
+    # line_data =  (">> " + KisKR.GetStockName(stock_code) + "(" + stock_code + ") << \n비중: " + str(round(stock_now_rate * 100.0,2)) + "/" + str(round(stock_target_rate * 100.0,2)) 
+    # + "% \n수익: " + str(format(round(stock_revenue_money), ',')) + "("+ str(round(stock_revenue_rate,2)) 
+    # + "%) \n총평가금액: " + str(format(round(stock_eval_totalmoney), ',')) 
+    # + "\n리밸런싱수량: " + str(stock_info['stock_rebalance_amt']) + "\n----------------------\n")
 
-    #만약 아래 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
-    #if Is_Rebalance_Go == True:
-    #    line_alert.SendMessage(line_data)
-    strResult += line_data
+    # #만약 아래 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
+    # #if Is_Rebalance_Go == True:
+    # #    line_alert.SendMessage(line_data)
+    # strResult += line_data
 
 
 
@@ -378,13 +376,13 @@ data_str = "\n" + PortfolioName + "\n" +  strResult + "\n포트폴리오할당�
 #결과를 출력해 줍니다!
 print(data_str)
 
-#영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
-if Is_Rebalance_Go == True:
-    line_alert.SendMessage(data_str)
+# #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
+# if Is_Rebalance_Go == True:
+#     line_alert.SendMessage(data_str)
     
 #만약 위의 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
 #if Is_Rebalance_Go == True:
-#    line_alert.SendMessage("\n포트폴리오할당금액: " + str(format(round(TotalMoney), ',')) + "\n매수한자산총액: " + str(format(round(total_stock_money), ',') ))
+#    line_alert.SendMessage("\n포트폴리오할당금액: " + str(format(round(ToessagetaessagelMoney), ',')) + "\n매수한자산총액: " + str(format(round(total_stock_money), ',') ))
 
 
 
@@ -397,7 +395,7 @@ print("--------------------------------------------")
 #리밸런싱이 가능한 상태여야 하고 매수 매도는 장이 열려있어야지만 가능하다!!!
 if Is_Rebalance_Go == True and IsMarketOpen == True:
 
-    line_alert.SendMessage(PortfolioName + " (" + strYM + ") 리밸런싱 시작!!")
+    #line_alert.SendMessage(PortfolioName + " (" + strYM + ") 리밸런싱 시작!!")
 
     print("------------------리밸런싱 시작  ---------------------")
     #이제 목표치에 맞게 포트폴리오를 조정하면 되는데

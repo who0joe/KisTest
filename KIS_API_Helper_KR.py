@@ -344,7 +344,7 @@ def GetHoga(stock_code):
         return res.json()["msg_cd"]
 
 
-#국냐 주식 이름
+#국내 주식 이름
 def GetStockName(stock_code):
     time.sleep(0.2)
 
@@ -860,11 +860,7 @@ def SellAllStockIRP():
         pprint.pprint(MakeSellMarketOrderIRP(stock_info['StockCode'],stock_info['StockAmt']))
 
 
-
-
 ############################################################################################################################################################
-
-
 
 
 #매수 가능한지 체크 하기!
@@ -937,8 +933,6 @@ def AdjustPossibleAmt(stockcode, amt ,type):
     else:
         print("!!!!!!!!!!!!Amt OK!!!!!!!!!!!!!!!!!!")
         return int(amt)
-
-
 
 
 ############################################################################################################################################################
@@ -1105,7 +1099,6 @@ def GetOrderList(stockcode = "", side = "ALL", status = "ALL", limit = 5):
         return res.json()["msg_cd"]
 
 
-
 #주문 취소/수정 함수
 def CancelModifyOrder(stockcode, order_num1 , order_num2 , order_amt , order_price, mode = "CANCEL" ,order_type = "LIMIT" , order_dist = "NONE"):
 
@@ -1174,6 +1167,7 @@ def CancelModifyOrder(stockcode, order_num1 , order_num2 , order_amt , order_pri
         else:
             print("Error Code : " + str(res.status_code) + " | " + res.text)
             return res.json()["msg_cd"]
+
 
 #연금IRP 계좌 주문 취소/수정 함수
 def CancelModifyOrderIRP(stockcode, order_num1 , order_num2 , order_amt , order_price, mode = "CANCEL" ,order_type = "LIMIT", order_dist = "NONE"):
@@ -1249,7 +1243,6 @@ def CancelModifyOrderIRP(stockcode, order_num1 , order_num2 , order_amt , order_
 
 
 
-
 #모든 주문을 취소하는 함수 (모의투자 미지원)
 def CancelAllOrders(stockcode = "", side = "ALL"):
 
@@ -1258,8 +1251,6 @@ def CancelAllOrders(stockcode = "", side = "ALL"):
     for order in OrderList:
         if order['OrderSatus'].upper() == "OPEN":
             pprint.pprint(CancelModifyOrder(order['OrderStock'],order['OrderNum'],order['OrderNum2'],order['OrderAmt'],order['OrderAvgPrice']))
-
-
 
 
 ############################################################################################################################################################

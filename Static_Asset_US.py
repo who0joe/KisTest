@@ -45,7 +45,7 @@ Is_Rebalance_Go = False
 YMDict = dict()
 
 #파일 경로입니다.
-static_asset_tym_file_path = "/var/autobot/Static_Asset_US_YM1.json"
+static_asset_tym_file_path = "/Users/TY/Documents/class101/Static_Asset_US_YM1.json"
 try:
     with open(static_asset_tym_file_path, 'r') as json_file:
         YMDict = json.load(json_file)
@@ -218,7 +218,7 @@ cash2['stock_rebalance_amt'] = 0
 
 MyPortfolioList.append(cash2)
 
-'''
+
 #금액 대비 적합한 포트폴리오인지 체크
 for stock_info in MyPortfolioList:
 
@@ -237,7 +237,7 @@ for stock_info in MyPortfolioList:
     Amt = int(StockMoney / CurrentPrice)
 
     print("stock_code " , stock_code , " BuyAmt", Amt)
-'''
+
 
 
 ##########################################################
