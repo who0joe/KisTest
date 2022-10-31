@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from pyparsing import common_html_entity
 import KIS_Common as Common
 
 
@@ -343,7 +344,40 @@ def GetHoga(stock_code):
         return res.json()["msg_cd"]
 
 
+#국냐 주식 이름
+def GetStockName(stock_code):
+    time.sleep(0.2)
 
+
+    PATH = "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice"
+    URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+
+
+    # 헤더 설정
+    headers = {"Content-Type":"application/json", 
+            "authorization": f"Bearer {Common.GetToken(Common.GetNowDist())}",
+            "appKey":Common.GetAppKey(Common.GetNowDist()),
+            "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+            "tr_id":"FHKST03010100"}
+
+    params = {
+        "FID_COND_MRKT_DIV_CODE": "J",
+        "FID_INPUT_ISCD": stock_code,
+        "FID_INPUT_DATE_1": Common.GetFromNowDateStr("KR","NONE",-7),
+        "FID_INPUT_DATE_2": Common.GetNowDateStr("KR"),
+        "FID_PERIOD_DIV_CODE": 'D',
+        "FID_ORG_ADJ_PRC": "0"
+    }
+
+    # 호출
+    res = requests.get(URL, headers=headers, params=params)
+
+    if res.status_code == 200 and res.json()["rt_cd"] == '0':
+
+        return res.json()['output1']['hts_kor_isnm']
+    else:
+        print("Error Code : " + str(res.status_code) + " | " + res.text)
+        return res.json()["msg_cd"]
 
 
 
@@ -351,218 +385,235 @@ def GetHoga(stock_code):
 #시장가 주문하기!
 def MakeBuyMarketOrder(stockcode, amt):
     
-    try:
-        #매수 가능한수량으로 보정
-        amt = AdjustPossibleAmt(stockcode, amt, "MARKET")
-
-    except Exception as e:
-        print("Exception")
-
-
-    time.sleep(0.2)
-
-    TrId = "TTTC0802U"
-    if Common.GetNowDist() == "VIRTUAL":
-         TrId = "VTTC0802U"
-
-
-    PATH = "uapi/domestic-stock/v1/trading/order-cash"
-    URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
-    data = {
-        "CANO": Common.GetAccountNo(Common.GetNowDist()),
-        "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
-        "PDNO": stockcode,
-        "ORD_DVSN": "01",
-        "ORD_QTY": str(int(amt)),
-        "ORD_UNPR": "0"
-    }
-    headers = {"Content-Type":"application/json", 
-        "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
-        "appKey":Common.GetAppKey(Common.GetNowDist()),
-        "appSecret":Common.GetAppSecret(Common.GetNowDist()),
-        "tr_id": TrId,
-        "custtype":"P",
-        "hashkey" : Common.GetHashKey(data)
-    }
-    res = requests.post(URL, headers=headers, data=json.dumps(data))
-
-    if res.status_code == 200 and res.json()["rt_cd"] == '0':
-
-        order = res.json()['output']
-
-        OrderInfo = dict()
-        
-
-        OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
-        OrderInfo["OrderNum2"] = order['ODNO']
-        OrderInfo["OrderTime"] = order['ORD_TMD'] 
-
-
-
-        return OrderInfo
+    if int(Common.GetPrdtNo(Common.GetNowDist())) == 29:
+        return MakeBuyMarketOrderIRP(stockcode, amt)
     else:
-        print("Error Code : " + str(res.status_code) + " | " + res.text)
-        return res.json()["msg_cd"]
+        try:
+            #매수 가능한수량으로 보정
+            amt = AdjustPossibleAmt(stockcode, amt, "MARKET")
+
+        except Exception as e:
+            print("Exception")
+
+
+        time.sleep(0.2)
+
+        TrId = "TTTC0802U"
+        if Common.GetNowDist() == "VIRTUAL":
+            TrId = "VTTC0802U"
+
+
+        PATH = "uapi/domestic-stock/v1/trading/order-cash"
+        URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+        data = {
+            "CANO": Common.GetAccountNo(Common.GetNowDist()),
+            "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
+            "PDNO": stockcode,
+            "ORD_DVSN": "01",
+            "ORD_QTY": str(int(amt)),
+            "ORD_UNPR": "0"
+        }
+        headers = {"Content-Type":"application/json", 
+            "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
+            "appKey":Common.GetAppKey(Common.GetNowDist()),
+            "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+            "tr_id": TrId,
+            "custtype":"P",
+            "hashkey" : Common.GetHashKey(data)
+        }
+        res = requests.post(URL, headers=headers, data=json.dumps(data))
+
+        if res.status_code == 200 and res.json()["rt_cd"] == '0':
+
+            order = res.json()['output']
+
+            OrderInfo = dict()
+            
+
+            OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
+            OrderInfo["OrderNum2"] = order['ODNO']
+            OrderInfo["OrderTime"] = order['ORD_TMD'] 
+
+
+
+            return OrderInfo
+        else:
+            print("Error Code : " + str(res.status_code) + " | " + res.text)
+            return res.json()["msg_cd"]
         
 
 #시장가 매도하기!
 def MakeSellMarketOrder(stockcode, amt):
 
-    time.sleep(0.2)
-
-    TrId = "TTTC0801U"
-    if Common.GetNowDist() == "VIRTUAL":
-         TrId = "VTTC0801U"
-
-
-    PATH = "uapi/domestic-stock/v1/trading/order-cash"
-    URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
-    data = {
-        "CANO": Common.GetAccountNo(Common.GetNowDist()),
-        "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
-        "PDNO": stockcode,
-        "ORD_DVSN": "01",
-        "ORD_QTY": str(int(amt)),
-        "ORD_UNPR": "0",
-    }
-    headers = {"Content-Type":"application/json", 
-        "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
-        "appKey":Common.GetAppKey(Common.GetNowDist()),
-        "appSecret":Common.GetAppSecret(Common.GetNowDist()),
-        "tr_id":TrId,
-        "custtype":"P",
-        "hashkey" : Common.GetHashKey(data)
-    }
-    res = requests.post(URL, headers=headers, data=json.dumps(data))
-
-    if res.status_code == 200 and res.json()["rt_cd"] == '0':
-
-        order = res.json()['output']
-
-        OrderInfo = dict()
-        
-
-        OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
-        OrderInfo["OrderNum2"] = order['ODNO']
-        OrderInfo["OrderTime"] = order['ORD_TMD'] 
-
-
-        return OrderInfo
+    #퇴직연금(29) 반영
+    if int(Common.GetPrdtNo(Common.GetNowDist())) == 29:
+        return MakeSellMarketOrderIRP(stockcode, amt)
     else:
-        print("Error Code : " + str(res.status_code) + " | " + res.text)
-        return res.json()["msg_cd"]
+
+        time.sleep(0.2)
+
+        TrId = "TTTC0801U"
+        if Common.GetNowDist() == "VIRTUAL":
+            TrId = "VTTC0801U"
+
+
+        PATH = "uapi/domestic-stock/v1/trading/order-cash"
+        URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+        data = {
+            "CANO": Common.GetAccountNo(Common.GetNowDist()),
+            "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
+            "PDNO": stockcode,
+            "ORD_DVSN": "01",
+            "ORD_QTY": str(int(amt)),
+            "ORD_UNPR": "0",
+        }
+        headers = {"Content-Type":"application/json", 
+            "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
+            "appKey":Common.GetAppKey(Common.GetNowDist()),
+            "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+            "tr_id":TrId,
+            "custtype":"P",
+            "hashkey" : Common.GetHashKey(data)
+        }
+        res = requests.post(URL, headers=headers, data=json.dumps(data))
+
+        if res.status_code == 200 and res.json()["rt_cd"] == '0':
+
+            order = res.json()['output']
+
+            OrderInfo = dict()
+            
+
+            OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
+            OrderInfo["OrderNum2"] = order['ODNO']
+            OrderInfo["OrderTime"] = order['ORD_TMD'] 
+
+
+            return OrderInfo
+        else:
+            print("Error Code : " + str(res.status_code) + " | " + res.text)
+            return res.json()["msg_cd"]
 
 
 #지정가 주문하기!
 def MakeBuyLimitOrder(stockcode, amt, price, ErrLog="YES"):
     
-    
-    try:
-        #매수 가능한수량으로 보정
-        amt = AdjustPossibleAmt(stockcode, amt, "LIMIT")
-
-    except Exception as e:
-        print("Exception")
-
-
-
-
-    time.sleep(0.2)
-
-    TrId = "TTTC0802U"
-    if Common.GetNowDist() == "VIRTUAL":
-         TrId = "VTTC0802U"
-
-
-    PATH = "uapi/domestic-stock/v1/trading/order-cash"
-    URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
-    data = {
-        "CANO": Common.GetAccountNo(Common.GetNowDist()),
-        "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
-        "PDNO": stockcode,
-        "ORD_DVSN": "00",
-        "ORD_QTY": str(int(amt)),
-        "ORD_UNPR": str(PriceAdjust(price,stockcode)),
-    }
-    headers = {"Content-Type":"application/json", 
-        "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
-        "appKey":Common.GetAppKey(Common.GetNowDist()),
-        "appSecret":Common.GetAppSecret(Common.GetNowDist()),
-        "tr_id": TrId,
-        "custtype":"P",
-        "hashkey" : Common.GetHashKey(data)
-    }
-    res = requests.post(URL, headers=headers, data=json.dumps(data))
-
-    if res.status_code == 200 and res.json()["rt_cd"] == '0':
-
-        order = res.json()['output']
-
-        OrderInfo = dict()
-        
-
-        OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
-        OrderInfo["OrderNum2"] = order['ODNO']
-        OrderInfo["OrderTime"] = order['ORD_TMD'] 
-
-
-
-        return OrderInfo
-
+    #퇴직연금(29) 반영
+    if int(Common.GetPrdtNo(Common.GetNowDist())) == 29:
+        return MakeBuyLimitOrderIRP(stockcode, amt, price)
     else:
-        if ErrLog == "YES":
-            print("Error Code : " + str(res.status_code) + " | " + res.text)
-        return res.json()["msg_cd"]
-        
+    
+        try:
+            #매수 가능한수량으로 보정
+            amt = AdjustPossibleAmt(stockcode, amt, "LIMIT")
+
+        except Exception as e:
+            print("Exception")
+
+
+
+
+        time.sleep(0.2)
+
+        TrId = "TTTC0802U"
+        if Common.GetNowDist() == "VIRTUAL":
+            TrId = "VTTC0802U"
+
+
+        PATH = "uapi/domestic-stock/v1/trading/order-cash"
+        URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+        data = {
+            "CANO": Common.GetAccountNo(Common.GetNowDist()),
+            "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
+            "PDNO": stockcode,
+            "ORD_DVSN": "00",
+            "ORD_QTY": str(int(amt)),
+            "ORD_UNPR": str(PriceAdjust(price,stockcode)),
+        }
+        headers = {"Content-Type":"application/json", 
+            "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
+            "appKey":Common.GetAppKey(Common.GetNowDist()),
+            "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+            "tr_id": TrId,
+            "custtype":"P",
+            "hashkey" : Common.GetHashKey(data)
+        }
+        res = requests.post(URL, headers=headers, data=json.dumps(data))
+
+        if res.status_code == 200 and res.json()["rt_cd"] == '0':
+
+            order = res.json()['output']
+
+            OrderInfo = dict()
+            
+
+            OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
+            OrderInfo["OrderNum2"] = order['ODNO']
+            OrderInfo["OrderTime"] = order['ORD_TMD'] 
+
+
+
+            return OrderInfo
+
+        else:
+            if ErrLog == "YES":
+                print("Error Code : " + str(res.status_code) + " | " + res.text)
+            return res.json()["msg_cd"]
+            
 
 #지정가 매도하기!
 def MakeSellLimitOrder(stockcode, amt, price, ErrLog="YES"):
 
-    time.sleep(0.2)
-
-    TrId = "TTTC0801U"
-    if Common.GetNowDist() == "VIRTUAL":
-         TrId = "VTTC0801U"
-
-
-    PATH = "uapi/domestic-stock/v1/trading/order-cash"
-    URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
-    data = {
-        "CANO": Common.GetAccountNo(Common.GetNowDist()),
-        "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
-        "PDNO": stockcode,
-        "ORD_DVSN": "00",
-        "ORD_QTY": str(int(amt)),
-        "ORD_UNPR": str(PriceAdjust(price,stockcode)),
-    }
-    headers = {"Content-Type":"application/json", 
-        "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
-        "appKey":Common.GetAppKey(Common.GetNowDist()),
-        "appSecret":Common.GetAppSecret(Common.GetNowDist()),
-        "tr_id":TrId,
-        "custtype":"P",
-        "hashkey" : Common.GetHashKey(data)
-    }
-    res = requests.post(URL, headers=headers, data=json.dumps(data))
-    
-    if res.status_code == 200 and res.json()["rt_cd"] == '0':
-
-        order = res.json()['output']
-
-        OrderInfo = dict()
-        
-
-        OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
-        OrderInfo["OrderNum2"] = order['ODNO']
-        OrderInfo["OrderTime"] = order['ORD_TMD'] 
-
-
-
-        return OrderInfo
+    #퇴직연금(29) 반영
+    if int(Common.GetPrdtNo(Common.GetNowDist())) == 29:
+        return MakeSellLimitOrderIRP(stockcode, amt, price)
     else:
-        if ErrLog == "YES":
-            print("Error Code : " + str(res.status_code) + " | " + res.text)
-        return res.json()["msg_cd"]
+
+        time.sleep(0.2)
+
+        TrId = "TTTC0801U"
+        if Common.GetNowDist() == "VIRTUAL":
+            TrId = "VTTC0801U"
+
+
+        PATH = "uapi/domestic-stock/v1/trading/order-cash"
+        URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+        data = {
+            "CANO": Common.GetAccountNo(Common.GetNowDist()),
+            "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
+            "PDNO": stockcode,
+            "ORD_DVSN": "00",
+            "ORD_QTY": str(int(amt)),
+            "ORD_UNPR": str(PriceAdjust(price,stockcode)),
+        }
+        headers = {"Content-Type":"application/json", 
+            "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
+            "appKey":Common.GetAppKey(Common.GetNowDist()),
+            "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+            "tr_id":TrId,
+            "custtype":"P",
+            "hashkey" : Common.GetHashKey(data)
+        }
+        res = requests.post(URL, headers=headers, data=json.dumps(data))
+        
+        if res.status_code == 200 and res.json()["rt_cd"] == '0':
+
+            order = res.json()['output']
+
+            OrderInfo = dict()
+            
+
+            OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
+            OrderInfo["OrderNum2"] = order['ODNO']
+            OrderInfo["OrderTime"] = order['ORD_TMD'] 
+
+
+
+            return OrderInfo
+        else:
+            if ErrLog == "YES":
+                print("Error Code : " + str(res.status_code) + " | " + res.text)
+            return res.json()["msg_cd"]
 
 
 #보유한 주식을 모두 시장가 매도하는 극단적 함수 
@@ -573,8 +624,245 @@ def SellAllStock():
     for stock_info in StockList:
         pprint.pprint(MakeSellMarketOrder(stock_info['StockCode'],stock_info['StockAmt']))
 
+############# #############   IRP 계좌를 위한 매수 매도 함수   ############# ############# ############# 
+
+#시장가 주문하기!
+def MakeBuyMarketOrderIRP(stockcode, amt):
 
 
+    time.sleep(0.2)
+
+    TrId = "TTTC0502U"
+
+
+    PATH = "uapi/domestic-stock/v1/trading/order-pension"
+    URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+    data = {
+        "CANO": Common.GetAccountNo(Common.GetNowDist()),
+        "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
+        "SLL_BUY_DVSN_CD" : "02",
+        "SLL_TYPE" : "01",
+        "ORD_DVSN": "01",
+        "PDNO": stockcode,
+        "LNKD_ORD_QTY" : str(int(amt)),
+        "LNKD_ORD_UNPR": "0",
+        "RVSE_CNCL_DVSN_CD" : "00",
+        "KRX_FWDG_ORD_ORGNO" : "",
+        "ORGN_ODNO" : "",
+        "CTAC_TLNO" : "",
+        "ACCA_DVSN_CD" : "01"
+    }
+    headers = {"Content-Type":"application/json", 
+        "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
+        "appKey":Common.GetAppKey(Common.GetNowDist()),
+        "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+        "tr_id": TrId,
+        "custtype":"P",
+        "hashkey" : Common.GetHashKey(data)
+    }
+    res = requests.post(URL, headers=headers, data=json.dumps(data))
+
+    if res.status_code == 200 and res.json()["rt_cd"] == '0':
+
+        order = res.json()['output']
+
+        OrderInfo = dict()
+        
+
+        OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
+        OrderInfo["OrderNum2"] = order['ODNO']
+        OrderInfo["OrderTime"] = order['ORD_TMD'] 
+
+
+
+        return OrderInfo
+    else:
+        print("Error Code : " + str(res.status_code) + " | " + res.text)
+        
+        
+        return res.json()["msg_cd"]
+    
+#시장가 매도하기!
+def MakeSellMarketOrderIRP(stockcode, amt):
+
+
+    time.sleep(0.2)
+
+    TrId = "TTTC0502U"
+
+
+    PATH = "uapi/domestic-stock/v1/trading/order-pension"
+    URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+    data = {
+        "CANO": Common.GetAccountNo(Common.GetNowDist()),
+        "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
+        "SLL_BUY_DVSN_CD" : "01",
+        "SLL_TYPE" : "01",
+        "ORD_DVSN": "01",
+        "PDNO": stockcode,
+        "LNKD_ORD_QTY" : str(int(amt)),
+        "LNKD_ORD_UNPR": "0",
+        "RVSE_CNCL_DVSN_CD" : "00",
+        "KRX_FWDG_ORD_ORGNO" : "",
+        "ORGN_ODNO" : "",
+        "CTAC_TLNO" : "",
+        "ACCA_DVSN_CD" : "01"
+    }
+    headers = {"Content-Type":"application/json", 
+        "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
+        "appKey":Common.GetAppKey(Common.GetNowDist()),
+        "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+        "tr_id": TrId,
+        "custtype":"P",
+        "hashkey" : Common.GetHashKey(data)
+    }
+    res = requests.post(URL, headers=headers, data=json.dumps(data))
+
+    if res.status_code == 200 and res.json()["rt_cd"] == '0':
+
+        order = res.json()['output']
+
+        OrderInfo = dict()
+        
+
+        OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
+        OrderInfo["OrderNum2"] = order['ODNO']
+        OrderInfo["OrderTime"] = order['ORD_TMD'] 
+
+
+
+        return OrderInfo
+    else:
+        print("Error Code : " + str(res.status_code) + " | " + res.text)
+        
+        
+        return res.json()["msg_cd"]
+    
+
+#지정가 주문하기!
+def MakeBuyLimitOrderIRP(stockcode, amt, price, ErrLog="YES"):
+
+
+    time.sleep(0.2)
+
+    TrId = "TTTC0502U"
+
+
+    PATH = "uapi/domestic-stock/v1/trading/order-pension"
+    URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+    data = {
+        "CANO": Common.GetAccountNo(Common.GetNowDist()),
+        "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
+        "SLL_BUY_DVSN_CD" : "02",
+        "SLL_TYPE" : "01",
+        "ORD_DVSN": "00",
+        "PDNO": stockcode,
+        "LNKD_ORD_QTY" : str(int(amt)),
+        "LNKD_ORD_UNPR": str(PriceAdjust(price,stockcode)),
+        "RVSE_CNCL_DVSN_CD" : "00",
+        "KRX_FWDG_ORD_ORGNO" : "",
+        "ORGN_ODNO" : "",
+        "CTAC_TLNO" : "",
+        "ACCA_DVSN_CD" : "01"
+    }
+    headers = {"Content-Type":"application/json", 
+        "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
+        "appKey":Common.GetAppKey(Common.GetNowDist()),
+        "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+        "tr_id": TrId,
+        "custtype":"P",
+        "hashkey" : Common.GetHashKey(data)
+    }
+    res = requests.post(URL, headers=headers, data=json.dumps(data))
+
+    if res.status_code == 200 and res.json()["rt_cd"] == '0':
+
+        order = res.json()['output']
+
+        OrderInfo = dict()
+        
+
+        OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
+        OrderInfo["OrderNum2"] = order['ODNO']
+        OrderInfo["OrderTime"] = order['ORD_TMD'] 
+
+
+
+        return OrderInfo
+    else:
+        print("Error Code : " + str(res.status_code) + " | " + res.text)
+        
+        
+        return res.json()["msg_cd"]
+
+#지정가 매도하기!
+def MakeSellLimitOrderIRP(stockcode, amt, price, ErrLog="YES"):
+
+
+    time.sleep(0.2)
+
+    TrId = "TTTC0502U"
+
+
+    PATH = "uapi/domestic-stock/v1/trading/order-pension"
+    URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+    data = {
+        "CANO": Common.GetAccountNo(Common.GetNowDist()),
+        "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
+        "SLL_BUY_DVSN_CD" : "01",
+        "SLL_TYPE" : "01",
+        "ORD_DVSN": "00",
+        "PDNO": stockcode,
+        "LNKD_ORD_QTY" : str(int(amt)),
+        "LNKD_ORD_UNPR": str(PriceAdjust(price,stockcode)),
+        "RVSE_CNCL_DVSN_CD" : "00",
+        "KRX_FWDG_ORD_ORGNO" : "",
+        "ORGN_ODNO" : "",
+        "CTAC_TLNO" : "",
+        "ACCA_DVSN_CD" : "01"
+    }
+    headers = {"Content-Type":"application/json", 
+        "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
+        "appKey":Common.GetAppKey(Common.GetNowDist()),
+        "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+        "tr_id": TrId,
+        "custtype":"P",
+        "hashkey" : Common.GetHashKey(data)
+    }
+    res = requests.post(URL, headers=headers, data=json.dumps(data))
+
+    if res.status_code == 200 and res.json()["rt_cd"] == '0':
+
+        order = res.json()['output']
+
+        OrderInfo = dict()
+        
+
+        OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
+        OrderInfo["OrderNum2"] = order['ODNO']
+        OrderInfo["OrderTime"] = order['ORD_TMD'] 
+
+
+
+        return OrderInfo
+    else:
+        print("Error Code : " + str(res.status_code) + " | " + res.text)
+        
+        
+        return res.json()["msg_cd"]
+    
+#보유한 주식을 모두 시장가 매도하는 극단적 함수 
+def SellAllStockIRP():
+    StockList = GetMyStockList()
+
+    #시장가로 모두 매도 한다
+    for stock_info in StockList:
+        pprint.pprint(MakeSellMarketOrderIRP(stock_info['StockCode'],stock_info['StockAmt']))
+
+
+
+
+############################################################################################################################################################
 
 
 
@@ -822,37 +1110,111 @@ def GetOrderList(stockcode = "", side = "ALL", status = "ALL", limit = 5):
 def CancelModifyOrder(stockcode, order_num1 , order_num2 , order_amt , order_price, mode = "CANCEL" ,order_type = "LIMIT" , order_dist = "NONE"):
 
 
+    #퇴직연금(29) 반영
+    if int(Common.GetPrdtNo(Common.GetNowDist())) == 29:
+        return CancelModifyOrderIRP(stockcode, order_num1 , order_num2 , order_amt , order_price, mode,order_type, order_dist)
+    else:
+
+        time.sleep(0.2)
+
+        TrId = "TTTC0803U"
+        if Common.GetNowDist() == "VIRTUAL":
+            TrId = "VTTC0803U"
+
+        #마켓 주문을 취소하거나 정정할 순 없는데? 일단 있으니깐 
+        order_type = "00"
+        if order_type.upper() == "MARKET":
+            order_type = "01"
+
+        mode_type = "02"
+        if mode.upper() == "MODIFY":
+            mode_type = "01"
+
+
+
+        PATH = "uapi/domestic-stock/v1/trading/order-rvsecncl"
+        URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+        data = {
+
+            "CANO": Common.GetAccountNo(Common.GetNowDist()),
+            "ACNT_PRDT_CD": Common.GetPrdtNo(Common.GetNowDist()),
+            "KRX_FWDG_ORD_ORGNO": order_num1,
+            "ORGN_ODNO": order_num2,
+            "ORD_DVSN": order_type,
+            "RVSE_CNCL_DVSN_CD": mode_type,
+            "ORD_QTY": str(order_amt),
+            "ORD_UNPR": str(PriceAdjust(order_price,stockcode)),
+            "QTY_ALL_ORD_YN": "N"
+
+        }
+        headers = {"Content-Type":"application/json", 
+            "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
+            "appKey":Common.GetAppKey(Common.GetNowDist()),
+            "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+            "tr_id": TrId,
+            "custtype":"P",
+            "hashkey" : Common.GetHashKey(data)
+        }
+
+        res = requests.post(URL, headers=headers, data=json.dumps(data))
+        
+        if res.status_code == 200 and res.json()["rt_cd"] == '0':
+
+            order = res.json()['output']
+
+            OrderInfo = dict()
+            
+
+            OrderInfo["OrderNum"] = order['KRX_FWDG_ORD_ORGNO']
+            OrderInfo["OrderNum2"] = order['ODNO']
+            OrderInfo["OrderTime"] = order['ORD_TMD'] 
+
+
+            return OrderInfo
+        else:
+            print("Error Code : " + str(res.status_code) + " | " + res.text)
+            return res.json()["msg_cd"]
+
+#연금IRP 계좌 주문 취소/수정 함수
+def CancelModifyOrderIRP(stockcode, order_num1 , order_num2 , order_amt , order_price, mode = "CANCEL" ,order_type = "LIMIT", order_dist = "NONE"):
+
+
     time.sleep(0.2)
 
-    TrId = "TTTC0803U"
-    if Common.GetNowDist() == "VIRTUAL":
-         TrId = "VTTC0803U"
 
-    #마켓 주문을 취소하거나 정정할 순 없는데? 일단 있으니깐 
+    order_dist = "02"
+    if order_dist.upper() == "SELL":
+        order_dist = "01"
+
     order_type = "00"
     if order_type.upper() == "MARKET":
         order_type = "01"
+        order_price *= 1.01
 
     mode_type = "02"
     if mode.upper() == "MODIFY":
         mode_type = "01"
 
 
+    TrId = "TTTC0502U"
 
-    PATH = "uapi/domestic-stock/v1/trading/order-rvsecncl"
+
+    PATH = "uapi/domestic-stock/v1/trading/order-pension"
     URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
     data = {
-
         "CANO": Common.GetAccountNo(Common.GetNowDist()),
-        "ACNT_PRDT_CD": Common.GetPrdtNo(Common.GetNowDist()),
-        "KRX_FWDG_ORD_ORGNO": order_num1,
-        "ORGN_ODNO": order_num2,
+        "ACNT_PRDT_CD" : Common.GetPrdtNo(Common.GetNowDist()),
+        "SLL_BUY_DVSN_CD" : order_dist,
+        "SLL_TYPE" : "01",
         "ORD_DVSN": order_type,
-        "RVSE_CNCL_DVSN_CD": mode_type,
-        "ORD_QTY": str(order_amt),
-        "ORD_UNPR": str(PriceAdjust(order_price,stockcode)),
-        "QTY_ALL_ORD_YN": "N"
-
+        "PDNO": "",
+        "LNKD_ORD_QTY" : str(int(order_amt)),
+        "LNKD_ORD_UNPR": str(PriceAdjust(order_price,stockcode)),
+        "RVSE_CNCL_DVSN_CD" : mode_type,
+        "KRX_FWDG_ORD_ORGNO" : order_num1,
+        "ORGN_ODNO" : order_num2,
+        "CTAC_TLNO" : "",
+        "ACCA_DVSN_CD" : "01"
     }
     headers = {"Content-Type":"application/json", 
         "authorization":f"Bearer {Common.GetToken(Common.GetNowDist())}",
@@ -862,9 +1224,8 @@ def CancelModifyOrder(stockcode, order_num1 , order_num2 , order_amt , order_pri
         "custtype":"P",
         "hashkey" : Common.GetHashKey(data)
     }
-
     res = requests.post(URL, headers=headers, data=json.dumps(data))
-    
+
     if res.status_code == 200 and res.json()["rt_cd"] == '0':
 
         order = res.json()['output']
@@ -877,14 +1238,19 @@ def CancelModifyOrder(stockcode, order_num1 , order_num2 , order_amt , order_pri
         OrderInfo["OrderTime"] = order['ORD_TMD'] 
 
 
+
         return OrderInfo
     else:
         print("Error Code : " + str(res.status_code) + " | " + res.text)
+        
+        
         return res.json()["msg_cd"]
+    
 
 
 
-#모든 주문을 취소하는 함수
+
+#모든 주문을 취소하는 함수 (모의투자 미지원)
 def CancelAllOrders(stockcode = "", side = "ALL"):
 
     OrderList = GetOrderList(stockcode,side)
@@ -959,6 +1325,8 @@ def GetOhlcv(stock_code,p_code):
                         OhlcvData['value'] = float(ohlcv['acml_tr_pbmn'])
 
                         OhlcvList.append(OhlcvData)
+                    
+                    
                 except Exception as e:
                     print("E:", e)
                     
@@ -974,7 +1342,9 @@ def GetOhlcv(stock_code,p_code):
 
 
 
-        return df
+        return df   
+
     else:
         print("Error Code : " + str(res.status_code) + " | " + res.text)
         return res.json()["msg_cd"]
+
