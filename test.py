@@ -25,8 +25,8 @@ print("                                     ")
 
 
 #내 잔고 확인
-pprint.pprint(KisUS.GetBalance())
-#pprint.pprint(KisKR.GetBalance())
+#pprint.pprint(KisUS.GetBalance())
+pprint.pprint(KisKR.GetBalance())
 
 #통합 증거금용 잔고 확인
 #pprint.pprint(Common.GetBalanceKrwTotal())
@@ -36,7 +36,7 @@ print("------------------------------------")
 print("                                     ")
 
 #내 보유 주식 리스트 확인
-pprint.pprint(KisUS.GetMyStockList())
+pprint.pprint(KisKR.GetMyStockList())
 
 
 
@@ -89,7 +89,7 @@ time.sleep(3.0)
 sell_price = current_price * 1.1
 
 #애플 1주 10%위에 지정가 매도 주문
-#pprint.pprint(KisKR.MakeSellLimitOrder(stock_code,1,sell_price))
+pprint.pprint(KisKR.MakeSellLimitOrder(stock_code,1,sell_price))
 
 print("                                     ")
 print("------------------------------------")
@@ -122,12 +122,21 @@ print("------------------------------------")
 print("                                     ")
 
 ##미체결 모두 취소
+time.sleep(5.0)
+pprint.pprint(KisKR.CancelAllOrders("","ALL"))
+
+print("                                     ")
+print("---------미체결 전량취소완료----------")
+print("                                     ")
 
 
 ##보유주식 모두 시장가매도
-time.sleep(10.0)
+time.sleep(7.0)
 pprint.pprint(KisKR.SellAllStock())
 
+print("                                     ")
+print("---------잔고 전량매도완료------------")
+print("                                     ")
 
 #########################################################################################################
 
