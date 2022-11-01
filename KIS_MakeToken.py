@@ -1,3 +1,6 @@
+
+
+
 import KIS_Common as common
 import line_notify
 

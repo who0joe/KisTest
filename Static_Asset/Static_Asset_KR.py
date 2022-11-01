@@ -34,7 +34,7 @@ PortfolioName = "정적자산배분전략_영구변형"
 #####################################################################################################################################
 
 #전제는 크롭탭에 주말 빼고 우리나라 시간 아침10시 정각에 해당 봇이 돈다고 가정!
-# 0 1 * * 1-5 python3 /var/autobot/Static_Asset_US.py 
+# 0 1 * * 1-5 python3 /Users/TY/Documents/class101/Static_Asset/Static_Asset_US.py 
 
 
 #리밸런싱이 가능한지 여부를 판단!
@@ -45,7 +45,7 @@ Is_Rebalance_Go = False
 YMDict = dict()
 
 #파일 경로입니다.
-static_asset_tym_file_path = "/Users/TY/Documents/class101/Static_Asset_KR_YM1.json"
+static_asset_tym_file_path = "/Users/TY/Documents/class101/Static_Asset/Static_Asset_KR_YM1.json"
 try:
     with open(static_asset_tym_file_path, 'r') as json_file:
         YMDict = json.load(json_file)

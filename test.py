@@ -10,7 +10,7 @@ import time
 #REAL 실계좌 VIRTUAL 모의 계좌
 Common.SetChangeMode("VIRTUAL") 
 
-
+'''
 #현재 장이 열렸는지 여부
 if KisKR.IsMarketOpen() == True:
     print("Maket is Open!!")
@@ -138,6 +138,7 @@ print("                                     ")
 print("---------잔고 전량매도완료------------")
 print("                                     ")
 
+'''
 #########################################################################################################
 
 '''
@@ -242,9 +243,30 @@ print(" Yahoo ")
 pprint.pprint(Common.GetOhlcv2("US","AAPL"))
 '''
 
-
-
-
 #pprint.pprint(Common.GetOhlcv("KR","005930"))
 #pprint.pprint(Common.GetOhlcv("US","TQQQ"))
 
+
+############################################################################################################################
+
+
+import json
+import pandas as pd
+
+
+KoreaStockList = list()
+#파일 경로입니다.
+korea_file_path = "/Users/TY/Documents/Class101/KrStockCodeList.json"
+
+try:
+    #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 
+    with open(korea_file_path, 'r') as json_file:
+        KoreaStockList = json.load(json_file)
+
+except Exception as e:
+    print("Exception by First")
+    
+    
+for stock_code in KoreaStockList:
+    print(stock_code, KisKR.GetStockName(stock_code))
+    

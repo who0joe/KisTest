@@ -1,3 +1,4 @@
+
 import yaml
 
 import json
@@ -404,3 +405,36 @@ def GetOhlcv2(area, stock_code, limit = 500):
 
 
     return df
+
+
+
+####################################################################################################################
+
+#종가 데이터를 가지고 오는데 신규 상장되서 240거래일 전 데이터가 없다면 신규 상장일의 정보를 리턴해준다.
+
+def GetCloseData(df,st):
+    if len(df) < abs(st):
+        return df['close'][-len(df)]
+    else:
+        return df['close'][st]
+
+
+
+#넘어온 종목 코드 리스트에 해당 종목이 있는지 여부를 체크하는 함수!
+
+def CheckStockCodeInList(stock_code_list, find_code):
+    InOk = False
+    for stock_code in stock_code_list:
+        if stock_code == find_code:
+            InOk = True
+            break
+    return InOk
+
+
+####################################################################################################################
+
+#이동평균선 수치를 구해준다 첫번째: 일봉 정보, 두번째: 기간, 세번째: 기준 날짜
+def GetMA(ohlcv,period,st):
+    close = ohlcv["close"]
+    ma = close.rolling(period).mean()
+    return float(ma[st])

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 import KIS_Common as Common
 
 import requests
