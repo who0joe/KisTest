@@ -938,7 +938,7 @@ def AdjustPossibleAmt(stockcode, amt ,type):
 ############################################################################################################################################################
 
 #주문 리스트를 얻어온다! 종목 코드, side는 ALL or BUY or SELL, 상태는 OPEN or CLOSE
-def GetOrderList(stockcode = "", side = "ALL", status = "ALL", limit = 5):
+def GetOrderList(stockcode = "", side = "ALL", status = "ALL", limit = 50):
     
     time.sleep(0.2)
     
@@ -1136,7 +1136,8 @@ def CancelModifyOrder(stockcode, order_num1 , order_num2 , order_amt , order_pri
             "ORD_DVSN": order_type,
             "RVSE_CNCL_DVSN_CD": mode_type,
             "ORD_QTY": str(order_amt),
-            "ORD_UNPR": str(PriceAdjust(order_price,stockcode)),
+            #"ORD_UNPR": str(PriceAdjust(order_price,stockcode)),
+            "ORD_UNPR": "0",
             "QTY_ALL_ORD_YN": "N"
 
         }
@@ -1243,14 +1244,15 @@ def CancelModifyOrderIRP(stockcode, order_num1 , order_num2 , order_amt , order_
 
 
 
-#모든 주문을 취소하는 함수 (모의투자 미지원)
+#모든 주문을 취소하는 함수 
 def CancelAllOrders(stockcode = "", side = "ALL"):
 
-    OrderList = GetOrderList(stockcode,side)
+    OrderList = GetOrderList(stockcode,side,"OPEN")
+    #pprint.pprint(OrderList)
 
     for order in OrderList:
-        if order['OrderSatus'].upper() == "OPEN":
-            pprint.pprint(CancelModifyOrder(order['OrderStock'],order['OrderNum'],order['OrderNum2'],order['OrderAmt'],order['OrderAvgPrice']))
+        #if order['OrderSatus'].upper() == "OPEN":
+        pprint.pprint(CancelModifyOrder(order['OrderStock'],order['OrderNum'],order['OrderNum2'],order['OrderAmt'],order['OrderAvgPrice']))
 
 
 ############################################################################################################################################################
