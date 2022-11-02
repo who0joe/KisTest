@@ -438,3 +438,269 @@ def GetMA(ohlcv,period,st):
     close = ohlcv["close"]
     ma = close.rolling(period).mean()
     return float(ma[st])
+
+
+######################################################################################################################
+#pykrx를 통해 지수 정보를 읽어온다
+#아래 2줄로 활용가능한 지수를 체크할 수 있다!!
+#for index_v in stock.get_index_ticker_list(market='KOSDAQ'): #KOSPI 지수도 확인 가능!
+#    print(index_v, stock.get_index_ticker_name(index_v))
+
+def GetIndexOhlcvPyKrx(index_code, limit = 500):
+
+
+    df = stock.get_index_ohlcv(GetFromNowDateStr("KR","NONE",-limit), GetNowDateStr("KR","NONE"), index_code)
+
+
+    df = df[[ '시가', '고가', '저가', '종가', '거래량', '거래대금' ]]
+    df.columns = [ 'open', 'high', 'low', 'close', 'volume', 'value']
+    df.index.name = "Date"
+
+    df.insert(6,'change',(df['close'] - df['close'].shift(1)) / df['close'].shift(1))
+
+    df[[ 'open', 'high', 'low', 'close', 'volume', 'change']] = df[[ 'open', 'high', 'low', 'close', 'volume', 'change']].apply(pd.to_numeric)
+
+
+    time.sleep(0.2)
+
+
+    return df
+
+
+##############################################################################################
+
+#area 지역: US or KR, 종목코드, 목표 가격, 수량 (양수면 매수 음수면 매도) 연속성 주문 시스템!
+# 지정가 주문을 넣었을때 미체결 되었다면, 정해진 일수 안에 시장가 체결하는 방법
+def AutoLimitDoAgain(botname, area, stock_code, target_price, do_amt, stock_type = "STOCK"):
+
+    #수량이 0이면 거른다!
+    if int(do_amt) == 0:
+        return None
+
+
+    if area == "KR":
+        print("KR")
+
+        MyStockList = KisKR.GetMyStockList()
+
+
+        stock_amt = 0
+        for my_stock in MyStockList:
+            if my_stock['StockCode'] == stock_code:
+                stock_amt = int(my_stock['StockAmt'])
+                break
+
+        AutoLimitData = dict()
+        AutoLimitData['Area'] = area                #지역
+        AutoLimitData['NowDist'] = GetNowDist()     #구분
+        AutoLimitData['BotName'] = botname          #봇 이름
+        AutoLimitData['StockCode'] = stock_code      #종목코드
+        AutoLimitData['TargetPrice'] = float(target_price)   #타겟 주문 가격
+        AutoLimitData['OrderAmt'] = int(do_amt)              #주문 수량 양수면 매수 음수면 매도 
+        
+        OrderData = None
+
+        #사야된다
+        if do_amt > 0:
+            AutoLimitData['TargetAmt'] = stock_amt + abs(AutoLimitData['OrderAmt'])   #최종 목표 수량 (현재수량 + 주문수량)
+
+            try:
+
+                OrderData = KisKR.MakeBuyLimitOrder(stock_code,abs(do_amt),target_price)
+                AutoLimitData['OrderNum'] = OrderData["OrderNum"]      #주문아이디1
+                AutoLimitData['OrderNum2'] = OrderData["OrderNum2"]    #주문아이디2
+                AutoLimitData['OrderTime'] = OrderData["OrderTime"]    #주문시간
+
+            except Exception as e:
+
+                #시간 정보를 읽는다
+                time_info = time.gmtime()
+                AutoLimitData['OrderNum'] = 0
+                AutoLimitData['OrderNum2'] = 0
+                AutoLimitData['OrderTime'] = GetNowDateStr(area) + str(time_info.tm_hour) + str(time_info.tm_min) + str(time_info.tm_sec)
+
+                        
+
+        #팔아야 된다!
+        else:
+
+            AutoLimitData['TargetAmt'] = stock_amt - abs(AutoLimitData['OrderAmt'])  #최종 목표 수량 (현재수량 - 주문수량)
+
+            try:
+                    
+                OrderData = KisKR.MakeSellLimitOrder(stock_code,abs(do_amt),target_price)
+                AutoLimitData['OrderNum'] = OrderData["OrderNum"]
+                AutoLimitData['OrderNum2'] = OrderData["OrderNum2"]   
+                AutoLimitData['OrderTime'] = OrderData["OrderTime"]   
+
+            except Exception as e:
+
+                #시간 정보를 읽는다
+                time_info = time.gmtime()
+                AutoLimitData['OrderNum'] = 0
+                AutoLimitData['OrderNum2'] = 0
+                AutoLimitData['OrderTime'] = GetNowDateStr(area) + str(time_info.tm_hour) + str(time_info.tm_min) + str(time_info.tm_sec)
+
+                        
+                        
+        AutoLimitData['IsCancel'] = 'N'  #주문 취소 여부
+        AutoLimitData['IsDone'] = 'N'    #주문 완료 여부
+        AutoLimitData['TryCnt'] = 0    #재주문 숫자 
+        AutoLimitData['DelDate'] =  GetFromNowDateStr(area,"NONE",10)    #10일 미래의 날짜 즉 10일 후에는 해당 데이터를 삭제처리할 예정 (어자피 하루만 유효한 주문들이다. 하루 지나고 삭제해도 되지만 참고를 위해 10일간 남겨둔다)
+        AutoLimitData['StockType'] = stock_type #Stock 일반 주식인지 ETF인지 
+
+        #해당 데이터의 ID를 만든다! 여러 항목의 조합으로 고유하도록!  이 아이디를 리턴해 봇에서 줘서 필요한 봇은 이 아이디를 가지고 리스트를 만들어 사용하면 된다!
+        AutoLimitData['Id'] = AutoLimitData['NowDist'] + botname + area + str(stock_code) + str(AutoLimitData["OrderNum"]) + str(AutoLimitData["OrderNum2"]) + str(AutoLimitData["OrderTime"]) + str(do_amt) + str(target_price) 
+    
+
+        SaveAutoLimitDoAgainData(AutoLimitData)
+
+
+
+
+        #등록된 해당 주문 데이터 ID를 리턴한다
+        return AutoLimitData['Id']
+
+        
+
+
+    else:
+        print("US")
+
+
+        MyStockList = KisUS.GetMyStockList()
+
+
+        stock_amt = 0
+        for my_stock in MyStockList:
+            if my_stock['StockCode'] == stock_code:
+                stock_amt = int(my_stock['StockAmt'])
+                break
+
+        AutoLimitData = dict()
+        AutoLimitData['Area'] = area                #지역
+        AutoLimitData['NowDist'] = GetNowDist()     #구분
+        AutoLimitData['BotName'] = botname          #봇 이름
+        AutoLimitData['StockCode'] = stock_code      #종목코드
+        AutoLimitData['TargetPrice'] = float(target_price)   #타겟 주문 가격
+        AutoLimitData['OrderAmt'] = int(do_amt)              #주문 수량 양수면 매수 음수면 매도 
+        
+        #사야된다
+        if do_amt > 0:
+            AutoLimitData['TargetAmt'] = stock_amt + abs(AutoLimitData['OrderAmt'])  #최종 목표 수량 (현재수량 + 주문수량)
+
+
+            try:
+
+                OrderData = KisUS.MakeBuyLimitOrder(stock_code,abs(do_amt),target_price)
+                AutoLimitData['OrderNum'] = OrderData["OrderNum"]      #주문아이디1
+                AutoLimitData['OrderNum2'] = OrderData["OrderNum2"]    #주문아이디2
+                AutoLimitData['OrderTime'] = OrderData["OrderTime"]    #주문시간
+
+
+            except Exception as e:
+
+                #시간 정보를 읽는다
+                time_info = time.gmtime()
+                AutoLimitData['OrderNum'] = 0
+                AutoLimitData['OrderNum2'] = 0
+                AutoLimitData['OrderTime'] = GetNowDateStr(area)  + str(time_info.tm_hour) + str(time_info.tm_min) + str(time_info.tm_sec) 
+
+
+        #팔아야 된다!
+        else:
+
+            AutoLimitData['TargetAmt'] = stock_amt - abs(AutoLimitData['OrderAmt']) #최종 목표 수량 (현재수량 - 주문수량)
+
+            try:
+                OrderData = KisUS.MakeSellLimitOrder(stock_code,abs(do_amt),target_price)
+                AutoLimitData['OrderNum'] = OrderData["OrderNum"]
+                AutoLimitData['OrderNum2'] = OrderData["OrderNum2"]   
+                AutoLimitData['OrderTime'] = OrderData["OrderTime"]   
+
+            except Exception as e:
+
+                #시간 정보를 읽는다
+                time_info = time.gmtime()
+                AutoLimitData['OrderNum'] = 0
+                AutoLimitData['OrderNum2'] = 0
+                AutoLimitData['OrderTime'] = GetNowDateStr(area)  + str(time_info.tm_hour) + str(time_info.tm_min) + str(time_info.tm_sec) 
+
+
+
+        AutoLimitData['IsCancel'] = 'N' #주문 취소 여부
+        AutoLimitData['IsDone'] = 'N'   #주문 완료 여부
+        AutoLimitData['TryCnt'] = 0    #재주문 숫자 
+        AutoLimitData['DelDate'] =  GetFromNowDateStr(area,"NONE",10)    #10일 미래의 날짜 즉 10일 후에는 해당 데이터를 삭제처리할 예정 (어자피 하루만 유효한 주문들이다. 하루 지나고 삭제해도 되지만 참고를 위해 10일간 남겨둔다)
+        AutoLimitData['StockType'] = stock_type #Stock 일반 주식인지 ETF인지 
+
+        #해당 데이터의 ID를 만든다! 여러 항목의 조합으로 고유하도록!  이 아이디를 리턴해 봇에서 줘서 필요한 봇은 이 아이디를 가지고 리스트를 만들어 사용하면 된다!
+        AutoLimitData['Id'] = AutoLimitData['NowDist'] + botname + area + str(stock_code) + str(AutoLimitData["OrderNum"]) + str(AutoLimitData["OrderNum2"]) + str(AutoLimitData["OrderTime"]) + str(do_amt) + str(target_price) 
+    
+
+        SaveAutoLimitDoAgainData(AutoLimitData)
+
+
+            
+
+        #등록된 해당 주문 데이터 ID를 리턴한다
+        return AutoLimitData['Id']
+            
+
+
+#자동 주문 데이터를 각 봇 파일에 저장을 하는 함수!
+def SaveAutoLimitDoAgainData(AutoLimitData):
+
+
+    #파일 경로입니다.
+    auto_order_file_path = "/Users/TY/Documents/class101/" + AutoLimitData['Area'] + "_" + AutoLimitData['NowDist'] + "_" + AutoLimitData['BotName'] + "AutoOrderList.json"
+
+    #이렇게 랜덤하게 쉬어줘야 혹시나 있을 중복 파일 접근 방지!
+    time.sleep(random.random()*0.1)
+    
+    #자동 주문 리스트 읽기!
+    AutoOrderList = list()
+    try:
+        with open(auto_order_file_path, 'r') as json_file:
+            AutoOrderList = json.load(json_file)
+    except Exception as e:
+        print("Exception by First")
+
+    #!!!! 넘어온 데이터를 리스트에 추가하고 저장하기!!!!
+    AutoOrderList.append(AutoLimitData)
+    with open(auto_order_file_path, 'w') as outfile:
+        json.dump(AutoOrderList, outfile)
+
+
+
+
+
+    #봇마다 고유한 경로(자동주문리스트 파일의 경로)를 1개씩 저장해 둔다
+    #이를 for문 돌면 전체 모든 봇의 자동주문 리스트에 접근해서 처리할 수 있다
+    time.sleep(random.random()*0.1)
+    bot_path_file_path = "/Users/TY/Documents/class101/BotOrderListPath.json"
+    BotOrderPathList = list()
+    try:
+        with open(bot_path_file_path, 'r') as json_file:
+            BotOrderPathList = json.load(json_file)
+
+    except Exception as e:
+        print("Exception by First")
+
+
+
+    #읽어와서 중복되지 않은 것만 등록한다!
+    IsAlreadyIn = False
+    for botOrderPath in BotOrderPathList:
+        if botOrderPath == auto_order_file_path:
+            IsAlreadyIn = True
+            break
+
+    #현재 저 파일에 없다면 추가해준다!!
+    if IsAlreadyIn == False:
+        BotOrderPathList.append(auto_order_file_path)
+
+        with open(bot_path_file_path, 'w') as outfile:
+            json.dump(BotOrderPathList, outfile)
+
+
