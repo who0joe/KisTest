@@ -381,6 +381,86 @@ def GetStockName(stock_code):
 
 
 
+#############################################################################################################################
+# 국내 주식 시총, PER,PBR, EPS, PBS 구해서 리턴하기
+
+def GetCurrentStatus(stock_code):
+    time.sleep(0.2)
+
+    PATH = "uapi/domestic-stock/v1/quotations/inquire-price"
+    URL = f"{Common.GetUrlBase(Common.GetNowDist())}/{PATH}"
+
+    # 헤더 설정
+    headers = {"Content-Type":"application/json", 
+            "authorization": f"Bearer {Common.GetToken(Common.GetNowDist())}",
+            "appKey":Common.GetAppKey(Common.GetNowDist()),
+            "appSecret":Common.GetAppSecret(Common.GetNowDist()),
+            "tr_id":"FHKST01010100"}
+
+    params = {
+        "FID_COND_MRKT_DIV_CODE":"J",
+        "FID_INPUT_ISCD": stock_code
+    }
+
+    # 호출
+    res = requests.get(URL, headers=headers, params=params)
+    #pprint.pprint(res.json())
+
+    if res.status_code == 200 and res.json()["rt_cd"] == '0':
+        
+        result = res.json()['output']
+        
+        #pprint.pprint(result)
+
+        
+        stockDataDict = dict()
+        stockDataDict['StockCode'] = stock_code
+        stockDataDict['StockName'] = GetStockName(stock_code)
+        stockDataDict['StockNowPrice'] = int(result['stck_prpr'])
+        stockDataDict['StockMarket'] = result['rprs_mrkt_kor_name'] #ETF인지 코스피, 코스닥인지
+        stockDataDict['StockDistName'] = result['bstp_kor_isnm'] #금융주 등을 제외 하기 위해!!
+        stockDataDict['StockNowStatus'] = result['iscd_stat_cls_code'] #관리종목,투자경고,투자주의,거래정지,단기과열을 제끼기 위해
+
+        try:
+            stockDataDict['StockMarketCap'] = float(result['hts_avls']) #시총
+        except Exception as e:
+            stockDataDict['StockMarketCap'] = 0
+
+        try:
+            stockDataDict['StockPER'] = float(result['per']) #PER
+        except Exception as e:
+            stockDataDict['StockPER'] = 0
+
+        try:
+            stockDataDict['StockPBR'] = float(result['pbr']) #PBR
+        except Exception as e:
+            stockDataDict['StockPBR'] = 0
+
+
+        try:
+            stockDataDict['StockEPS'] = float(result['eps']) #EPS
+        except Exception as e:
+            stockDataDict['StockEPS'] = 0
+        
+        try:
+            stockDataDict['StockBPS'] = float(result['bps']) #BPS
+        except Exception as e:
+            stockDataDict['StockBPS'] = 0
+
+        
+        
+        return stockDataDict
+    else:
+        print("Error Code : " + str(res.status_code) + " | " + res.text)
+        return res.json()["msg_cd"]
+    
+
+
+
+
+
+
+
 ############################################################################################################################################################
 #시장가 주문하기!
 def MakeBuyMarketOrder(stockcode, amt):

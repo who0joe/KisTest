@@ -5,6 +5,12 @@ import KIS_API_Helper_KR as KisKR
 import pprint
 import time
 
+
+import json
+import pandas as pd
+
+from pykrx import stock
+
 #통합증거금을 사용하시는 분은 강의 영상을 잘 봐주세요!!
 
 #REAL 실계좌 VIRTUAL 모의 계좌
@@ -248,11 +254,9 @@ pprint.pprint(Common.GetOhlcv2("US","AAPL"))
 
 
 ############################################################################################################################
+# 종목 코드에 맞는 종목 이름 불러오기
 
-
-import json
-import pandas as pd
-
+'''
 
 KoreaStockList = list()
 #파일 경로입니다.
@@ -269,4 +273,86 @@ except Exception as e:
     
 for stock_code in KoreaStockList:
     print(stock_code, KisKR.GetStockName(stock_code))
-    
+
+'''
+
+####################################################################################################
+
+'''
+TargetStockList = list()
+#파일 경로입니다.
+korea_file_path = "/Users/TY/Documents/Class101/KrStockDataList.json"
+
+try:
+    #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 
+    with open(korea_file_path, 'r') as json_file:
+        TargetStockList = json.load(json_file)
+
+except Exception as e:
+    print("Exception by First")
+
+
+print("TotalStockCodeCnt: " , len(TargetStockList))
+
+
+df = pd.DataFrame(TargetStockList)
+
+df = df[df.StockMarketCap >= 50.0].copy()
+df = df[df.StockDistName != "금융"].copy()
+df = df[df.StockDistName != "외국증권"].copy()
+
+
+
+df = df.sort_values(by="StockMarketCap")
+pprint.pprint(df)
+
+print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+
+pprint.pprint(df[0:20])
+
+'''
+
+
+####################################################################################################
+
+'''
+
+stockcode = "224060"
+
+url = "https://finance.naver.com/item/main.naver?code=" + stockcode
+dfs = pd.read_html(url,encoding='euc-kr')
+
+#pprint.pprint(dfs[4])
+
+data_dict = dfs[4]
+
+
+data_keys = list(data_dict.keys())
+
+for key in data_keys:
+    if stockcode in key:
+        print(key)
+        print(data_dict[key][5]) #매출액
+        print(data_dict[key][6]) #영업이익
+        print(data_dict[key][8]) #영업이익증가율
+        print(data_dict[key][11]) #ROE
+    print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+
+
+'''
+
+#############################################################################################
+
+
+
+
+#코스닥 지수 확인
+for index_v in stock.get_index_ticker_list(market='KOSDAQ'): #KOSPI 지수도 확인 가능!
+    print(index_v, stock.get_index_ticker_name(index_v))
+
+print("-----------------------------------------------------------------")
+
+#코스피 지수 확인
+for index_v in stock.get_index_ticker_list(market='KOSPI'): #KOSPI 지수도 확인 가능!
+    print(index_v, stock.get_index_ticker_name(index_v))
