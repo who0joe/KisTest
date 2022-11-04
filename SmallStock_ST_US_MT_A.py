@@ -1,17 +1,24 @@
-from pickle import FALSE
 import KIS_Common as Common
-import KIS_API_Helper_KR as KisKR
+import KIS_API_Helper_US as KisUS
 import json
 import pandas as pd
 import pprint
 import time
+#import line_alert
 
+############################
+# 통합 증거금 계좌 사용시 예입니다 #
+# 다 동일한데 일부분이 변경되었어요 #
+# 통합 증거금 으로 검색해보세요 #
+# 변경된 부분을 체크하실 수 있어요 #
+############################
 
-from pykrx import stock
 
 #계좌 선택.. "VIRTUAL" 는 모의 계좌!
 Common.SetChangeMode("VIRTUAL") #REAL or VIRTUAL
 
+
+BOT_NAME = Common.GetNowDist() + "_SmallQuant_US"
 
 
 #시간 정보를 읽는다
@@ -23,29 +30,20 @@ print("ym_st: " , strYM)
 
 
 #포트폴리오 이름
-PortfolioName = "소형주퀀트_전략"
+PortfolioName = "소형주퀀트_전략US"
 
-'''
-조건 : 시총은 50억이상, 영업이익 0이상(플러스)
 
-시총 작은 순으로 정렬 후 가장 작은거 부터 20개 분산 투자
-
-종목당 최대 매수 금액은 500만원
-
-마켓타이밍
-코스닥 소형지수 20일 이평선 위에 있으면 보유
-20일 이평선 밑에 있으면 매도
-
-'''
 
 
 #####################################################################################################################################
 #####################################################################################################################################
 #####################################################################################################################################
 
-#전제는 크롭탭 적절한 시간대에 등록하셔서 활용하세요!
-# https://blog.naver.com/zacra/222496979835
-# 0 1 * * 1-5 python3 /Users/TY/Documents/class101/SmallStock_ST_KR_MT.py 
+
+#전제는 크롭탭에 주말 빼고 UTC 0시 기준 16시/ 우리나라 시간 새벽1시 정각에 해당 봇이 돈다고 가정!
+# 0 16 * * 1-5 python3 /var/autobot/Static_Asset_US.py 
+
+
 
 
 #리밸런싱이 가능한지 여부를 판단!
@@ -56,7 +54,8 @@ Is_Rebalance_Go = False
 YMDict = dict()
 
 #파일 경로입니다.
-asset_tym_file_path = "/Users/TY/Documents/class101/KrSmallStockST_YM.json"
+asset_tym_file_path = "/var/autobot/UsSmallStockST_YM" + BOT_NAME + ".json"
+
 try:
     with open(asset_tym_file_path, 'r') as json_file:
         YMDict = json.load(json_file)
@@ -86,38 +85,34 @@ else:
 
 
 
+
 #마켓이 열렸는지 여부~!
-IsMarketOpen = KisKR.IsMarketOpen()
+IsMarketOpen = KisUS.IsMarketOpen()
 
 if IsMarketOpen == True:
     print("Market Is Open!!!!!!!!!!!")
-    
+    #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
+    #if Is_Rebalance_Go == True:
+    #    line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 열려서 포트폴리오 리밸런싱 가능!!")
 else:
     print("Market Is Close!!!!!!!!!!!")
- 
+    #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
+    #if Is_Rebalance_Go == True:
+    #    line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 닫혀서 포트폴리오 리밸런싱 불가능!!")
 
 
-
-
-#####################################################################################################################################
-#####################################################################################################################################
-#####################################################################################################################################
 
 
 
 #####################################################################################################################################
+#####################################################################################################################################
+#####################################################################################################################################
 
+###############################
+# 통합 증거금 계좌 사용시 수정된 부분 #
+###############################
 #계좌 잔고를 가지고 온다!
-Balance = KisKR.GetBalance()
-#####################################################################################################################################
-
-'''-------통합 증거금 사용자는 아래 코드도 사용할 수 있습니다! -----------'''
-#통합증거금 계좌 사용자 분들중 만약 미국계좌랑 통합해서 총자산을 계산 하고 포트폴리오 비중에도 반영하고 싶으시다면 아래 코드를 사용하시면 되고 나머지는 동일합니다!!!
-#Balance = Common.GetBalanceKrwTotal()
-
-'''-----------------------------------------------------------'''
-#####################################################################################################################################
-
+Balance = Common.GetBalanceKrwTotal()
 
 print("--------------내 보유 잔고---------------------")
 
@@ -125,13 +120,18 @@ pprint.pprint(Balance)
 
 print("--------------------------------------------")
 #총 평가금액에서 해당 봇에게 할당할 총 금액비율 1.0 = 100%  0.5 = 50%
-InvestRate = 0.05
+InvestRate = 0.1
 
 #기준이 되는 내 총 평가금액에서 투자비중을 곱해서 나온 포트폴리오에 할당된 돈!!
 TotalMoney = float(Balance['TotalMoney']) * InvestRate
 
 print("총 포트폴리오에 할당된 투자 가능 금액 : ", format(round(TotalMoney), ','))
 
+
+
+###################################################################################
+###################################################################################
+###################################################################################
 
 
 
@@ -141,7 +141,7 @@ StatusCode = "NONE"
 
 MaCheck = dict()
 #파일 경로입니다.
-ma_file_path = "/Users/TY/Documents/class101/KrSmallStockMaCheck.json"
+ma_file_path = "/var/autobot/UsSmallStockMaCheck.json"
 
 try:
     #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 
@@ -165,26 +165,19 @@ else:
 
 
 
-#아래 2줄로 활용가능한 지수를 체크할 수 있다!!
-#for index_v in stock.get_index_ticker_list(market='KOSDAQ'): #KOSPI 지수도 확인 가능!
-#    print(index_v, stock.get_index_ticker_name(index_v))
-
 #20일 이동평균선 위에 있는지 아래에 있는지 여부 
 IsNowMaUp = True
 
 try:
-
-    IndexID = "2004" #코스닥 소형지수
-
-    df = Common.GetIndexOhlcvPyKrx(IndexID)
-    pprint.pprint(df)
+    #SPY S&P500지수 추종 ETF를 사용한다! 
+    df = Common.GetOhlcv("US","SPY",50)
+ #   pprint.pprint(df)
 
     ma20 = Common.GetMA(df,20,-1)
     IndexNow = df['close'][-1]
 
-    print(stock.get_index_ticker_name(IndexID))
-    print("MA 20 : ", ma20)
-    print("Now ", IndexNow)
+    print("SPY MA 20 : ", ma20)
+    print("SPY Now ", IndexNow)
 
     if ma20 < IndexNow:
         IsNowMaUp = True
@@ -208,7 +201,7 @@ if StatusCode != "ST_FIRST":
         status_mst = "20일선 아래로 지수가 떨어졌습니다. 전략으로 매수한 모든 종목 매도 합니다!"
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         print(status_mst)
-     
+        #.SendMessage(status_mst)
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
 
@@ -220,8 +213,10 @@ if StatusCode != "ST_FIRST":
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         status_mst = "20일선 위로 지수가 올라왔습니다. 조건에 맞는 종목으로 매수 합니다!"
         print(status_mst)
-       
+        #line_alert.SendMessage(status_mst)
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
+
 
 
 
@@ -235,34 +230,31 @@ if StatusCode != "ST_FIRST":
 if StatusCode == "ST_FIRST" and IsNowMaUp == False:
 
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    status_mst = "처음 전략을 실행해 매수해야 하지만 코스닥 소형지수 20일 선 아래여서 동작하지 않습니다!"
+    status_mst = "처음 전략을 실행해 매수해야 하지만 S&P500 지수가 20일 선 아래여서 동작하지 않습니다!"
     print(status_mst)
-  
+    #line_alert.SendMessage(status_mst)
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
 else:
 
-    ###################################################################################
-    ###################################################################################
-    ###################################################################################
+
 
 
     #전략에 투자되거나 투자할 주식 리스트
     MyPortfolioList = list()
 
-    #Final20List -> FinalTopList로 변수명 변경
     FinalTopList = list()
-
+    
 
 
     #소형주 퀀트전략으로 투자하고 있는 주식 종목코드 리스트를 저장할 파일 
-    KRSmallStockSTList = list()
+    USSmallStockSTList = list()
     #파일 경로입니다.
-    small_stock_file_path = "/Users/TY/Documents/class101/KrSmallStockSTList.json"
+    small_stock_file_path = "/var/autobot/UsSmallStockSTList.json"
 
     try:
         with open(small_stock_file_path, 'r') as json_file:
-            KRSmallStockSTList = json.load(json_file)
+            USSmallStockSTList = json.load(json_file)
 
     except Exception as e:
         print("Exception by First")
@@ -270,8 +262,9 @@ else:
 
     #이전에 투자했던 종목들...
     print("-----Prev--------")
-    pprint.pprint(KRSmallStockSTList)
+    pprint.pprint(USSmallStockSTList)
     print("-----------------")
+    
 
 
 
@@ -280,7 +273,7 @@ else:
 
 
         #현재 전략으로 매수된 모든 주식을 팔아야 한다!
-        for AlReadyHasStock in KRSmallStockSTList:
+        for AlReadyHasStock in USSmallStockSTList:
 
             stock = dict()
             stock['stock_code'] = AlReadyHasStock['StockCode']         #종목코드
@@ -296,13 +289,15 @@ else:
     else:
 
 
+
+
         TargetStockList = list()
         #파일 경로입니다.
-        korea_file_path = "/Users/TY/Documents/class101/KrStockDataList.json"
+        us_file_path = "/var/autobot/UsStockDataList.json"
 
         try:
             #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 
-            with open(korea_file_path, 'r') as json_file:
+            with open(us_file_path, 'r') as json_file:
                 TargetStockList = json.load(json_file)
 
         except Exception as e:
@@ -314,20 +309,45 @@ else:
 
         df = pd.DataFrame(TargetStockList)
 
-        df = df[df.StockMarketCap >= 50.0].copy()
-        df = df[df.StockDistName != "금융"].copy()
-        df = df[df.StockDistName != "외국증권"].copy()
+        df['PER_rank'] = df['StockPER'].rank()
+        df['PBR_rank'] = df['StockPBR'].rank()
+        df['EV_EBITDA_rank'] = df['StockEV_EBITDA'].rank()
+        df['ROE_rank'] = df['StockROE'].rank(ascending=False)
 
-        #순이익 기준으로 엄격하게 필터하고 싶을 때  
+        df['TOTAL_SCORE'] = df['EV_EBITDA_rank']*3.0 + df['PBR_rank']*2.0 + df['PER_rank']*1.0 + df['ROE_rank']
+
+
+
+        df = df[df.StockMarketCap >= 5000000.0].copy() 
+        df = df[df.StockDistName != "Financial Services"].copy()
+
+
+        df = df[df.StockPER >= 1.0].copy()
+        df = df[df.StockPBR >= 0.2].copy()
+        df = df[df.StockOperatingMargin > 0].copy()
+        df = df[df.StockProfitMargin > 0].copy()
+
         df = df[df.StockEPS > 0].copy()
 
 
+
         df = df.sort_values(by="StockMarketCap")
+
+
+
+        #시총 상위 20%중에 PER낮은거순으로 20개?
+        df = df[0:int(float(len(df))*0.2)].copy()
+        pprint.pprint(df)
+
+
+        df = df.sort_values(by="TOTAL_SCORE")
+
+
+        print("----------------------------------------")
         pprint.pprint(df)
 
         print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
         print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-
 
 
         TopCnt = 20
@@ -340,47 +360,31 @@ else:
 
 
             if NowCnt < TopCnt:
-
-
+                
+                IsOk = False
+                #현재가!
                 try:
-                    print("---------------------------------------------------")
-                    print(stockcode,"..크롤링..")
+                    #현재가를 가져올수 있는지 체크 
+                    CurrentPrice = KisUS.GetCurrentPrice(stockcode)
+                    
+                    CurrentPrice = float(CurrentPrice)*1.0
+                    
+                    #거래량이 있는지 
+                    ohlcv = Common.GetOhlcv("US",stockcode,10)
+                    
+                    if int(ohlcv['volume'][-2]) == 0:
+                        IsOk = False
+                    else: 
+                        IsOk = True
 
-                    url = "https://finance.naver.com/item/main.naver?code=" + stockcode
-                    dfs = pd.read_html(url,encoding='euc-kr')
-                    #pprint.pprint(dfs)
-
-
-                    data_dict = dfs[4]
-
-                    data_keys = list(data_dict.keys())
-
-
-                    for key in data_keys:
-                        if stockcode in key:
-                            print(key)
-                            print("현재가: ",data_dict[key][0]) #현재가
-                            print("매출액: ",data_dict[key][5]) #매출액
-                            print("영업이익: ",data_dict[key][6]) #영업이익
-                            print("영업이익증가율: ",data_dict[key][8]) #영업이익증가율
-                            print("ROE: ",data_dict[key][11]) #ROE
-
-                            try:
-                               # now_price = float(data_dict[key][1]) # 동전주는 모의계좌에서 매매 불가  {"rt_cd":"1","msg_cd":"40070000","msg1":"모의투자 주문처리가 안되었습니다(매매불가 종목)"}
-                                com_revenue = float(data_dict[key][6])
-
-                                if com_revenue > 0 :#and now_price > 1000.0:
-                                    FinalTopList.append(row.to_dict())
-                                    NowCnt += 1
-
-
-                            except Exception as e:
-                                print("Except:", e)
-
-                    time.sleep(0.5)
-                        
                 except Exception as e:
-                    print("Except:", e)
+                    IsOk = False
+                    print("Exception by First")
+
+                if IsOk == True:
+                    FinalTopList.append(row.to_dict())
+                    NowCnt += 1
+
                 
             else:
                 break
@@ -394,11 +398,13 @@ else:
 
 
 
+
+
         #종목 개수 20개.
         StockCnt = len(FinalTopList)
 
 
-        #오늘 뽑은 조건에 맞는 주식들.. 비중이 20%이다!!!
+        #오늘 뽑은 조건에 맞는 주식들.. 
         for PickStock in FinalTopList:
             
             stock = dict()
@@ -409,8 +415,12 @@ else:
             MyPortfolioList.append(stock)
 
 
+
+
+
+
         #이전에 뽑아서 저장된 주식들....오늘 뽑은 것과 중복되지 않는 것을 뽑아낸다. 이는 시총 하위 순에서 밀려난 것으로 비중 0으로 모두 팔아줘야 한다!
-        for AlReadyHasStock in KRSmallStockSTList:
+        for AlReadyHasStock in USSmallStockSTList:
 
             #오늘 뽑은 주식과 비교해서..
             Is_Duple = False
@@ -443,8 +453,11 @@ else:
     ##########################################################
 
     print("--------------내 보유 주식---------------------")
-    #그리고 현재 이 계좌에서 보유한 주식 리스트를 가지고 옵니다!
-    MyStockList = KisKR.GetMyStockList()
+    ###############################
+    # 통합 증거금 계좌 사용시 수정된 부분 #
+    # 주식 잔고도 KRW 로 가져옵니다    #
+    ###############################
+    MyStockList = KisUS.GetMyStockList("KRW")
     pprint.pprint(MyStockList)
     print("--------------------------------------------")
     ##########################################################
@@ -466,7 +479,8 @@ else:
         stock_target_rate = float(stock_info['stock_target_rate']) / 100.0
 
         #현재가!
-        CurrentPrice = KisKR.GetCurrentPrice(stock_code)
+        CurrentPrice = KisUS.GetCurrentPrice(stock_code)
+
 
         
 
@@ -492,8 +506,9 @@ else:
                 break
 
 
-        print("#####" , KisKR.GetStockName(stock_code) ," stock_code: ", stock_code)
+        print("##### stock_code: ", stock_code)
         print("---> TargetRate:", round(stock_target_rate * 100.0,2) , "%")
+
 
         #주식의 총 평가금액을 더해준다
         total_stock_money += stock_eval_totalmoney
@@ -509,10 +524,11 @@ else:
 
             print("---> NowRate:", round(stock_now_rate * 100.0,2), "%")
             
+            #비중이 0 이면 전량 매도 
             if stock_target_rate == 0:
                 stock_info['stock_rebalance_amt'] = -stock_amt
-                print("!!!!!!!!! SELL")
                 
+            #아니라면 유지 
             else:
                     
                 #목표한 비중가 다르다면!!
@@ -525,8 +541,11 @@ else:
 
                     #그래서 그 갭만큼의 금액을 구한다
                     GapMoney = TotalMoney * abs(GapRate) 
+                    ########################################################
+                    # 통합 증거금 계좌 사용시 수정된 부분 현재가(달러)에 환율을 곱해줍니다 #
+                    ########################################################
                     #현재가로 나눠서 몇주를 매매해야 되는지 계산한다
-                    GapAmt = GapMoney / CurrentPrice
+                    GapAmt = GapMoney / (CurrentPrice * float(KisUS.GetExrt()))
 
                     #수량이 1보다 커야 리밸러싱을 할 수 있다!! 즉 그 전에는 리밸런싱 불가 
                     if GapAmt >= 1.0:
@@ -548,6 +567,7 @@ else:
         #잔고에 없는 경우
         else:
 
+            #비중 0 이상이면 비중 만큼 매수 
             if stock_target_rate != 0:
                     
                 print("---> NowRate: 0%")
@@ -555,9 +575,11 @@ else:
                 #잔고가 없다면 첫 매수다! 비중대로 매수할 총 금액을 계산한다 
                 BuyMoney = TotalMoney * stock_target_rate
 
-
+                ########################################################
+                # 통합 증거금 계좌 사용시 수정된 부분 현재가(달러)에 환율을 곱해줍니다 #
+                ########################################################
                 #매수할 수량을 계산한다!
-                BuyAmt = int(BuyMoney / CurrentPrice)
+                BuyAmt = int(BuyMoney / (CurrentPrice * float(KisUS.GetExrt())))
 
                 #포트폴리오에 들어간건 일단 무조건 1주를 사주자... 아니라면 아래 2줄 주석처리
             # if BuyAmt <= 0:
@@ -567,16 +589,21 @@ else:
             
             
             
+        
             
             
             
         #라인 메시지랑 로그를 만들기 위한 문자열 
-        line_data =  (">> " + KisKR.GetStockName(stock_code) + "(" + stock_code + ") << \n비중: " + str(round(stock_now_rate * 100.0,2)) + "/" + str(round(stock_target_rate * 100.0,2)) 
+        line_data =  (">> " + stock_code + " << \n비중: " + str(round(stock_now_rate * 100.0,2)) + "/" + str(round(stock_target_rate * 100.0,2)) 
         + "% \n수익: " + str(format(round(stock_revenue_money), ',')) + "("+ str(round(stock_revenue_rate,2)) 
         + "%) \n총평가금액: " + str(format(round(stock_eval_totalmoney), ',')) 
         + "\n리밸런싱수량: " + str(stock_info['stock_rebalance_amt']) + "\n----------------------\n")
 
-       
+        #만약 아래 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
+        #if Is_Rebalance_Go == True:
+        #    line_alert.SendMessage(line_data)
+        strResult += line_data
+
 
 
     ##########################################################
@@ -593,9 +620,8 @@ else:
     #    line_alert.SendMessage(data_str)
         
     #만약 위의 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
-    # if Is_Rebalance_Go == True:
-    #     line_alert.SendMessage("\n포트폴리오할당금액: " + str(format(round(TotalMoney), ',')) + "\n매수한자산총액: " + str(format(round(total_stock_money), ',') ))
-
+    #if Is_Rebalance_Go == True:
+    #    line_alert.SendMessage("\n포트폴리오할당금액: " + str(format(round(TotalMoney), ',')) + "\n매수한자산총액: " + str(format(round(total_stock_money), ',') ))
 
 
 
@@ -609,9 +635,10 @@ else:
     ##########################################################
 
 
-    #리밸런싱이 가능한 상태이거나 강제 리밸런싱을 진행해야 되는데 장이 열렸을 때!!!
-    if (Is_Rebalance_Go == True or NeedForceRebalance == True) and IsMarketOpen == True:
+    #리밸런싱이 가능한 상태여야 하고 매수 매도는 장이 열려있어야지만 가능하다!!!
+    if Is_Rebalance_Go == True and IsMarketOpen == True:
 
+        #line_alert.SendMessage(PortfolioName + " (" + strYM + ") 리밸런싱 시작!!")
 
         print("------------------리밸런싱 시작  ---------------------")
         #이제 목표치에 맞게 포트폴리오를 조정하면 되는데
@@ -630,12 +657,12 @@ else:
             #리밸런싱 수량이 마이너스인 것을 찾아 매도 한다!
             if rebalance_amt < 0:
                         
-                #일반계좌 개인연금(저축)계좌에서는 이 함수를 사용합니다
-                pprint.pprint(KisKR.MakeSellMarketOrder(stock_code,abs(rebalance_amt)))
-                
-                #퇴직연금 IRP 계좌에서는 아래 함수를 사용합니다.
-                #pprint.pprint(KisKR.MakeSellMarketOrderIRP(stock_code,abs(rebalance_amt)))
 
+                #현재가!
+                CurrentPrice = KisUS.GetCurrentPrice(stock_code)
+
+                Common.AutoLimitDoAgain(BOT_NAME,"US",stock_code,CurrentPrice,rebalance_amt,"DAY_END")
+                
 
         print("--------------------------------------------")
 
@@ -656,11 +683,10 @@ else:
             #리밸런싱 수량이 플러스인 것을 찾아 매수 한다!
             if rebalance_amt > 0:
                 print("stock_code", stock_code)
-                #일반계좌 개인연금(저축)계좌에서는 이 함수를 사용합니다
-                pprint.pprint(KisKR.MakeBuyMarketOrder(stock_code,rebalance_amt))
-                
-                #퇴직연금 IRP 계좌에서는 아래 함수를 사용합니다.
-                #pprint.pprint(KisKR.MakeBuyMarketOrderIRP(stock_code,rebalance_amt))
+                #현재가!
+                CurrentPrice = KisUS.GetCurrentPrice(stock_code)
+
+                Common.AutoLimitDoAgain(BOT_NAME,"US",stock_code,CurrentPrice,rebalance_amt,"DAY_END")
 
 
         print("--------------------------------------------")
@@ -673,25 +699,23 @@ else:
             json.dump(YMDict, outfile)
         #########################################################################################################################
             
+        #line_alert.SendMessage(PortfolioName + " (" + strYM + ") 리밸런싱 완료!!")
 
-
-        
 
         #########################################################################################################################
         if IsNowMaUp == True:
             #이전에 확정된 종목 이번에 선정된 것으로 바꿔치기!
-            KRSmallStockSTList = FinalTopList
+            USSmallStockSTList = FinalTopList
 
             print("-----Now--------")
-            pprint.pprint(KRSmallStockSTList)
+            pprint.pprint(USSmallStockSTList)
 
             #파일에 저장!!
             with open(small_stock_file_path, 'w') as outfile:
-                json.dump(KRSmallStockSTList, outfile)
+                json.dump(USSmallStockSTList, outfile)
 
-        print("-----------------")
+            print("-----------------")
         #########################################################################################################################
-
 
         #현재 20일 이평선 위에 있는지 아래에 있는지 여부를 파일에 저장해 줍니다!!!
         MaCheck['ma20'] = IsNowMaUp
@@ -699,6 +723,5 @@ else:
         #파일에 저장!!
         with open(ma_file_path, 'w') as outfile:
             json.dump(MaCheck, outfile)
-
         print("------------------리밸런싱 끝---------------------")
 

@@ -11,11 +11,16 @@ import KIS_API_Helper_US as KisUS
 import KIS_API_Helper_KR as KisKR
 
 import time
+import random
 
 import FinanceDataReader as fdr
 import pandas_datareader.data as web
 
+import numpy
 import pandas as pd
+
+
+from pykrx import stock
 
 stock_info = None
 
@@ -408,38 +413,6 @@ def GetOhlcv2(area, stock_code, limit = 500):
 
 
 
-####################################################################################################################
-
-#종가 데이터를 가지고 오는데 신규 상장되서 240거래일 전 데이터가 없다면 신규 상장일의 정보를 리턴해준다.
-
-def GetCloseData(df,st):
-    if len(df) < abs(st):
-        return df['close'][-len(df)]
-    else:
-        return df['close'][st]
-
-
-
-#넘어온 종목 코드 리스트에 해당 종목이 있는지 여부를 체크하는 함수!
-
-def CheckStockCodeInList(stock_code_list, find_code):
-    InOk = False
-    for stock_code in stock_code_list:
-        if stock_code == find_code:
-            InOk = True
-            break
-    return InOk
-
-
-####################################################################################################################
-
-#이동평균선 수치를 구해준다 첫번째: 일봉 정보, 두번째: 기간, 세번째: 기준 날짜
-def GetMA(ohlcv,period,st):
-    close = ohlcv["close"]
-    ma = close.rolling(period).mean()
-    return float(ma[st])
-
-
 ######################################################################################################################
 #pykrx를 통해 지수 정보를 읽어온다
 #아래 2줄로 활용가능한 지수를 체크할 수 있다!!
@@ -469,9 +442,34 @@ def GetIndexOhlcvPyKrx(index_code, limit = 500):
 
 ##############################################################################################
 
+
+
+
+'''
+!!!!!stock_type 유형!!!!!
+
+TARGET_FIX : 
+첫 주문한 지정가격이 절대 변하지 않는다. 체결되기 전까지 매일 매일 그 가격 그대로 재주문!!!
+
+NORMAL : 
+지정된 카운팅에 해당하는 날 전에는 계속 타겟 가격으로 주문을 넣다가 
+카운팅 날짜 부터는 현재가 그 다음날에는 지정가로 일 단위로 주문을 넣는 루즈한 로직
+
+
+DAY_END : 
+지정가로 주문을 넣지만 하루안에 주문을 끝낸다.  장중에 매시간마다 해당 주문을 체크해서 현재가로 지정가 주문을 변경 (체결 확률 업! ) 
+마지막 장 끝나기 전 시간에도 수량이 남아있다면 이때는 시장가로 마무리 !
+
+
+DAY_END_TRY_ETF:
+DAY_END랑 비슷하지만 ETF의 NAV와 괴리율을 고려해서 하루안에 끝내거나 다음 날로 넘김 (클래스 설명 참조)
+
+'''
+
+
 #area 지역: US or KR, 종목코드, 목표 가격, 수량 (양수면 매수 음수면 매도) 연속성 주문 시스템!
 # 지정가 주문을 넣었을때 미체결 되었다면, 정해진 일수 안에 시장가 체결하는 방법
-def AutoLimitDoAgain(botname, area, stock_code, target_price, do_amt, stock_type = "STOCK"):
+def AutoLimitDoAgain(botname, area, stock_code, target_price, do_amt, stock_type = "NORMAL"):
 
     #수량이 0이면 거른다!
     if int(do_amt) == 0:
@@ -547,7 +545,7 @@ def AutoLimitDoAgain(botname, area, stock_code, target_price, do_amt, stock_type
         AutoLimitData['IsDone'] = 'N'    #주문 완료 여부
         AutoLimitData['TryCnt'] = 0    #재주문 숫자 
         AutoLimitData['DelDate'] =  GetFromNowDateStr(area,"NONE",10)    #10일 미래의 날짜 즉 10일 후에는 해당 데이터를 삭제처리할 예정 (어자피 하루만 유효한 주문들이다. 하루 지나고 삭제해도 되지만 참고를 위해 10일간 남겨둔다)
-        AutoLimitData['StockType'] = stock_type #Stock 일반 주식인지 ETF인지 
+        AutoLimitData['StockType'] = stock_type #stock_type 유형
 
         #해당 데이터의 ID를 만든다! 여러 항목의 조합으로 고유하도록!  이 아이디를 리턴해 봇에서 줘서 필요한 봇은 이 아이디를 가지고 리스트를 만들어 사용하면 된다!
         AutoLimitData['Id'] = AutoLimitData['NowDist'] + botname + area + str(stock_code) + str(AutoLimitData["OrderNum"]) + str(AutoLimitData["OrderNum2"]) + str(AutoLimitData["OrderTime"]) + str(do_amt) + str(target_price) 
@@ -704,3 +702,68 @@ def SaveAutoLimitDoAgainData(AutoLimitData):
             json.dump(BotOrderPathList, outfile)
 
 
+
+
+####################################################################################################################
+
+#종가 데이터를 가지고 오는데 신규 상장되서 240거래일 전 데이터가 없다면 신규 상장일의 정보를 리턴해준다.
+
+def GetCloseData(df,st):
+    if len(df) < abs(st):
+        return df['close'][-len(df)]
+    else:
+        return df['close'][st]
+
+
+
+#넘어온 종목 코드 리스트에 해당 종목이 있는지 여부를 체크하는 함수!
+
+def CheckStockCodeInList(stock_code_list, find_code):
+    InOk = False
+    for stock_code in stock_code_list:
+        if stock_code == find_code:
+            InOk = True
+            break
+    return InOk
+
+
+####################################################################################################################
+
+#이동평균선 수치를 구해준다 첫번째: 일봉 정보, 두번째: 기간, 세번째: 기준 날짜
+def GetMA(ohlcv,period,st):
+    close = ohlcv["close"]
+    ma = close.rolling(period).mean()
+    return float(ma[st])
+
+
+
+#RSI지표 수치를 구해준다. 첫번째: 분봉/일봉 정보, 두번째: 기간, 세번째: 기준 날짜
+def GetRSI(ohlcv,period,st):
+    delta = ohlcv["close"].diff()
+    up, down = delta.copy(), delta.copy()
+    up[up < 0] = 0
+    down[down > 0] = 0
+    _gain = up.ewm(com=(period - 1), min_periods=period).mean()
+    _loss = down.abs().ewm(com=(period - 1), min_periods=period).mean()
+    RS = _gain / _loss
+    return float(pd.Series(100 - (100 / (1 + RS)), name="RSI").iloc[st])
+
+
+#볼린저 밴드를 구해준다 첫번째: 분봉/일봉 정보, 두번째: 기간, 세번째: 기준 날짜
+#차트와 다소 오차가 있을 수 있습니다.
+def GetBB(ohlcv,period,st,uni = 2.0):
+    dic_bb = dict()
+
+    ohlcv = ohlcv[::-1]
+    ohlcv = ohlcv.shift(st + 1)
+    close = ohlcv["close"].iloc[::-1]
+
+    unit = uni
+    bb_center=numpy.mean(close[len(close)-period:len(close)])
+    band1=unit*numpy.std(close[len(close)-period:len(close)])
+
+    dic_bb['ma'] = float(bb_center)
+    dic_bb['upper'] = float(bb_center + band1)
+    dic_bb['lower'] = float(bb_center - band1)
+
+    return dic_bb

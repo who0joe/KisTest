@@ -17,6 +17,8 @@ import time
 
 import pandas as pd
 
+from pykrx import stock
+
 
 #시장이 열렸는지 여부 체크! #토요일 일요일은 확실히 안열리니깐 제외! 
 def IsMarketOpen():
@@ -233,6 +235,8 @@ def GetMyStockList():
         if res.status_code == 200 and res.json()["rt_cd"] == '0':
                 
             SeqKey = res.json()['ctx_area_nk100'].strip()
+
+            print("SeqKey : ",SeqKey)
             if SeqKey != "":
                 print("CTX_AREA_NK100: ", SeqKey)
                 
@@ -463,17 +467,21 @@ def GetCurrentStatus(stock_code):
 
 ############################################################################################################################################################
 #시장가 주문하기!
-def MakeBuyMarketOrder(stockcode, amt):
+def MakeBuyMarketOrder(stockcode, amt, adjustAmt = False):
     
+    #퇴직연금(29) 반영
     if int(Common.GetPrdtNo(Common.GetNowDist())) == 29:
         return MakeBuyMarketOrderIRP(stockcode, amt)
     else:
-        try:
-            #매수 가능한수량으로 보정
-            amt = AdjustPossibleAmt(stockcode, amt, "MARKET")
+            
+        #매수가능 수량으로 보정할지 여부
+        if adjustAmt == True:
+            try:
+                #매수 가능한수량으로 보정
+                amt = AdjustPossibleAmt(stockcode, amt, "MARKET")
 
-        except Exception as e:
-            print("Exception")
+            except Exception as e:
+                print("Exception")
 
 
         time.sleep(0.2)
@@ -519,9 +527,13 @@ def MakeBuyMarketOrder(stockcode, amt):
             return OrderInfo
         else:
             print("Error Code : " + str(res.status_code) + " | " + res.text)
+            
+            if res.json()["msg_cd"] == "APBK1744":
+                MakeBuyMarketOrderIRP(stockcode, amt)
+            
+            
             return res.json()["msg_cd"]
-        
-
+            
 #시장가 매도하기!
 def MakeSellMarketOrder(stockcode, amt):
 
@@ -576,21 +588,22 @@ def MakeSellMarketOrder(stockcode, amt):
 
 
 #지정가 주문하기!
-def MakeBuyLimitOrder(stockcode, amt, price, ErrLog="YES"):
+def MakeBuyLimitOrder(stockcode, amt, price, adjustAmt = False, ErrLog = "NO"):
     
     #퇴직연금(29) 반영
     if int(Common.GetPrdtNo(Common.GetNowDist())) == 29:
         return MakeBuyLimitOrderIRP(stockcode, amt, price)
     else:
-    
-        try:
-            #매수 가능한수량으로 보정
-            amt = AdjustPossibleAmt(stockcode, amt, "LIMIT")
-
-        except Exception as e:
-            print("Exception")
 
 
+        #매수가능 수량으로 보정할지 여부
+        if adjustAmt == True:
+            try:
+                #매수 가능한수량으로 보정
+                amt = AdjustPossibleAmt(stockcode, amt, "MARKET")
+
+            except Exception as e:
+                print("Exception")
 
 
         time.sleep(0.2)
@@ -632,12 +645,15 @@ def MakeBuyLimitOrder(stockcode, amt, price, ErrLog="YES"):
             OrderInfo["OrderTime"] = order['ORD_TMD'] 
 
 
-
             return OrderInfo
 
         else:
             if ErrLog == "YES":
                 print("Error Code : " + str(res.status_code) + " | " + res.text)
+                
+            if res.json()["msg_cd"] == "APBK1744":
+                MakeBuyLimitOrderIRP(stockcode, amt, price)
+                
             return res.json()["msg_cd"]
             
 
@@ -1421,3 +1437,132 @@ def GetOhlcv(stock_code,p_code):
         print("Error Code : " + str(res.status_code) + " | " + res.text)
         return res.json()["msg_cd"]
 
+#############################################################################################################
+
+
+#ETF의 NAV얻기
+def GetETF_Nav(stock_code,Log = "N"):
+
+    IsExcept = False
+    Nav = 0
+
+    #영상과 다르게 먼저 네이버 크롤링해서 먼저 NAV를 가지고 온다 -> 이게 장중 실시간 NAV를 더 잘 반영!
+    try:
+
+
+        url = "https://finance.naver.com/item/main.naver?code=" + stock_code
+        dfs = pd.read_html(url,encoding='euc-kr')
+        #pprint.pprint(dfs)
+
+        data_dict = dfs[8]
+
+        '''
+        data_keys = list(data_dict.keys())
+        for key in data_keys:
+            print("key:",key)
+            print("data_dict[key]:",data_dict[key])
+
+            Second_Key = list(data_dict[key].keys())
+            for secondkey in Second_Key:
+                print("secondkey:",secondkey)
+                print("data_dict[key][secondkey]:", data_dict[key][secondkey])
+        '''
+
+        Nav = int(data_dict[1][0])
+
+        time.sleep(0.3)
+
+
+    except Exception as e:
+        print("ex", e)
+        IsExcept = True
+
+    
+    #만약 실패한다면 pykrx를 이용해 NAV값을 가지고 온다
+    if IsExcept == True:
+        try:
+
+                    
+            df = stock.get_etf_price_deviation(Common.GetFromNowDateStr("KR","NONE", -5), Common.GetNowDateStr("KR"), stock_code)
+
+
+            if Log == 'Y':
+                pprint.pprint(df)
+
+            if len(df) == 0:
+                IsExcept = True
+
+            Nav = df['NAV'][-1]
+            print(Nav)
+            
+
+        except Exception as e:
+            print("except!!!!!!!!")
+            Nav = GetCurrentPrice(stock_code)
+
+    return Nav
+
+    
+    
+
+
+#ETF의 괴리율 구하기!
+def GetETFGapAvg(stock_code, Log = "N"):
+
+    GapAvg = 0
+    IsExcept = False
+
+    #pykrx 모듈 통해서 괴리율 평균을 구해옴!!!
+    try:
+        df = stock.get_etf_price_deviation(Common.GetFromNowDateStr("KR","NONE", -120), Common.GetNowDateStr("KR"), stock_code)
+        if Log == 'Y':
+            pprint.pprint(df)
+        if len(df) == 0:
+            IsExcept = True
+
+        TotalGap = 0
+
+        for idx, row in df.iterrows():
+            
+            Gap = abs(float(row['괴리율']))   
+
+            TotalGap += Gap
+
+        GapAvg = TotalGap/len(df)
+
+            
+        print("GapAvg", GapAvg)
+        
+
+    except Exception as e:
+        IsExcept = True
+        print("ex", e)
+
+    #만약 실패한다면 네이버 직접 크롤링을 통해 가져옴!!!!
+    if IsExcept == True:
+        try:
+
+                
+            url = "https://finance.naver.com/item/main.naver?code=" + stock_code
+            dfs = pd.read_html(url,encoding='euc-kr')
+
+            data_dict = dfs[4]
+
+            data_list = data_dict["괴리율"].to_list()
+
+            count = 0
+            TotalGap = 0
+            for data in data_list:
+                if "%" in str(data):
+                    Gap = float(data.replace('%', ''))
+                    TotalGap += Gap
+                    count += 1
+
+            GapAvg = TotalGap/count
+
+
+        except Exception as e:
+            print("except!!!!!!!!")
+
+
+    return GapAvg

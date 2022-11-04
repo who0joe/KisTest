@@ -98,4 +98,3 @@ for idx, row in df.iterrows():
 
         NowCnt += 1
 
-

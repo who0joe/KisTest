@@ -40,7 +40,7 @@ pprint.pprint(KisKR.GetBalance())
 print("                                     ")
 print("------------------------------------")
 print("                                     ")
-
+'''
 #내 보유 주식 리스트 확인
 pprint.pprint(KisKR.GetMyStockList())
 
@@ -50,7 +50,7 @@ print("                                     ")
 print("------------------------------------")
 print("                                     ")
 
-
+'''
 stock_code = "005930" #애플 종목코드
 
 current_price = KisKR.GetCurrentPrice(stock_code)
@@ -346,7 +346,7 @@ for key in data_keys:
 
 
 
-
+'''
 #코스닥 지수 확인
 for index_v in stock.get_index_ticker_list(market='KOSDAQ'): #KOSPI 지수도 확인 가능!
     print(index_v, stock.get_index_ticker_name(index_v))
@@ -356,3 +356,44 @@ print("-----------------------------------------------------------------")
 #코스피 지수 확인
 for index_v in stock.get_index_ticker_list(market='KOSPI'): #KOSPI 지수도 확인 가능!
     print(index_v, stock.get_index_ticker_name(index_v))
+
+'''
+
+
+#################################################################################################
+
+stock_code = "069500"
+
+CurrentPrice = KisKR.GetCurrentPrice(stock_code)
+
+print("-------------------------------------")
+Nav = KisKR.GetETF_Nav(stock_code)
+print("-------------------------------------")
+FarRate = ((CurrentPrice-Nav) / Nav) * 100.0
+
+
+#최근 괴리율 절대값들의 평균
+print("-------------------------------------")
+AvgGap = KisKR.GetETFGapAvg(stock_code)
+print("-------------------------------------")
+
+print("#######################################")
+
+print("ETF NAV: " , Nav," 현재가:", CurrentPrice, " 괴리율:",FarRate , " 괴리율 절대값 평균:", AvgGap)
+
+
+#맨 마지막에 True를 넣으면 잔고상황 반영한 수량으로 주문이 들어갑니다
+KisKR.MakeBuyLimitOrder(stock_code,10,KisKR.GetCurrentPrice(stock_code))
+
+
+####### 영상엔 없지만 아래 함수를 사용해 주문자동시스템에서 주문취소 및 시스템내 삭제가 가능합니다 ####
+#주문 아이디에 해당하는 주문 취소 및 자동시스템에서 주문 삭제 예시 
+Common.DelAutoLimitOrder('REAL2MY_PENSIONKR2612209125200000432650959421015785.93')
+
+#봇 이름에 해당하는 모든 주문 취소 및 자동시스템에서 주문 삭제 예시 
+Common.AllDelAutoLimitOrder("MY_PENSION")
+
+
+
+
+
