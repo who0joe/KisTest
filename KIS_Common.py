@@ -702,6 +702,183 @@ def SaveAutoLimitDoAgainData(AutoLimitData):
             json.dump(BotOrderPathList, outfile)
 
 
+####################################################################################################################
+
+#주문 아이디를 받아 해당 주문을 취소하는 로직
+def DelAutoLimitOrder(AutoOrderId):
+
+    bot_path_file_path = "/Users/TY/Documents/class101/BotOrderListPath.json"
+
+    #각 봇 별로 들어가 있는 자동 주문 리스트!!!
+    BotOrderPathList = list()
+    try:
+        with open(bot_path_file_path, 'r') as json_file:
+            BotOrderPathList = json.load(json_file)
+
+    except Exception as e:
+        print("Exception by First")
+
+    IsFindOrder = False
+    time.sleep(random.random()*0.01)
+    #오토 리미트 주문 데이터가 있는 모든 봇을 순회하며 처리한다!!
+    for botOrderPath in BotOrderPathList:
+
+        #이 botOrderPath는 각 봇의 고유한 경로 (리미트 오토 주문들이 저장되어 있는 파일 경로)
+        print("----->" , botOrderPath)
+
+        AutoOrderList = list()
+
+        try:
+            with open(botOrderPath, 'r') as json_file:
+                AutoOrderList = json.load(json_file)
+
+        except Exception as e:
+            print("Exception by First")
+
+
+
+       
+        
+        #해당 봇의 읽어온 주문 데이터들을 순회합니다.
+        for AutoLimitData in AutoOrderList:
+
+            try:
+
+                #해당 주문을 찾았다!!!
+                if AutoLimitData['Id'] == AutoOrderId:
+
+
+                    #해당 주문의 계좌를 바라보도록 셋팅 합니다!!
+                    SetChangeMode(AutoLimitData['NowDist']) 
+
+                    ########## 현재 살아있는 주문을 취소!!! #######
+
+                    #내 주식 잔고 리스트를 읽어서 현재 보유 수량 정보를 stock_amt에 넣어요!
+                    MyStockList = KisUS.GetMyStockList()
+                    if AutoLimitData['Area'] == "KR":
+                        MyStockList = KisKR.GetMyStockList()
+
+
+                    #미체결 수량이 들어갈 변수!
+                    GapAmt = 0
+
+                    stock_amt = 0
+                    for my_stock in MyStockList:
+                        if my_stock['StockCode'] == AutoLimitData['StockCode']:
+                            stock_amt = int(my_stock['StockAmt'])
+                            print(my_stock['StockName'], stock_amt)
+                            break
+
+                    #일단 목표로 하는 수량에서 현재 보유수량을 빼줍니다.
+                    #이는 종목의 주문이 1개일 때 유효합니다. 왜 그런지 그리고TargetAmt값이 뭔지는 KIS_Common의 AutoLimitDoAgain함수를 살펴보세요
+                    GapAmt = abs(AutoLimitData['TargetAmt'] - stock_amt)
+
+                    Is_Except = False
+                    try:
+
+                        #주문리스트를 읽어 온다! 퇴직연금계좌 IRP계좌에서는 이 정보를 못가져와 예외가 발생합니다!!
+                        OrderList = KisKR.GetOrderList(AutoLimitData['StockCode'])
+
+                        print(len(OrderList) , " <--- Order OK!!!!!!")
+                        
+                        #주문 번호를 이용해 해당 주문을 찾습니다!!!
+                        for OrderInfo in OrderList:
+                            if OrderInfo['OrderNum'] == AutoLimitData['OrderNum'] and float(OrderInfo["OrderNum2"]) == float(AutoLimitData['OrderNum2']):
+                                GapAmt = abs(OrderInfo["OrderResultAmt"] - OrderInfo["OrderAmt"])
+
+                                if AutoLimitData['Area'] == "KR":
+                                    KisKR.CancelModifyOrder(AutoLimitData['StockCode'],AutoLimitData['OrderNum'],AutoLimitData['OrderNum2'],abs(GapAmt),KisKR.GetCurrentPrice(AutoLimitData['StockCode']),"CANCEL")
+                                else:
+                                    KisUS.CancelModifyOrder(AutoLimitData['StockCode'],AutoLimitData['OrderNum2'],AutoLimitData['OrderAmt'],KisUS.GetCurrentPrice(AutoLimitData['StockCode']),"CANCEL")
+                                        
+                                break
+
+                    except Exception as e:
+                        #예외 발생!
+                        Is_Except = True
+                        print("Exception", e)
+
+                    #예외가 발생했다면 
+                    if Is_Except == True:
+                        try:
+                            #취소!
+                            if AutoLimitData['Area'] == "KR":
+                                KisKR.CancelModifyOrder(AutoLimitData['StockCode'],AutoLimitData['OrderNum'],AutoLimitData['OrderNum2'],abs(GapAmt),KisKR.GetCurrentPrice(AutoLimitData['StockCode']),"CANCEL")
+                            else:
+                                #미국은 2차 시도! 최초 주문수량으로 취소가 되는지 남은 미체결 수량으로 취소가 되는지 불분명..이렇게 하면 위에서 1번 여기서 1번 취소처리 함으로써 취소가 안된 주문을 확실히 취소 처리 할 수 있다!
+                                KisUS.CancelModifyOrder(AutoLimitData['StockCode'],AutoLimitData['OrderNum2'],abs(GapAmt),KisUS.GetCurrentPrice(AutoLimitData['StockCode']),"CANCEL")
+                        except Exception as e:
+                            print("Exception", e)
+       
+
+                    ##########실제로 리스트에서 제거#######
+                    AutoOrderList.remove(AutoLimitData)
+
+                    with open(botOrderPath, 'w') as outfile:
+                        json.dump(AutoOrderList, outfile)
+
+                    IsFindOrder = True
+
+                    break
+
+
+
+            except Exception as e:
+                print("Exception by First")
+
+        if IsFindOrder == True:
+            break
+
+#해당 봇의 모든 주문데이터를 취소하는 로직!
+def AllDelAutoLimitOrder(bot_name):
+
+    bot_path_file_path = "/Users/TY/Documents/class101/BotOrderListPath.json"
+
+    #각 봇 별로 들어가 있는 자동 주문 리스트!!!
+    BotOrderPathList = list()
+    try:
+        with open(bot_path_file_path, 'r') as json_file:
+            BotOrderPathList = json.load(json_file)
+
+    except Exception as e:
+        print("Exception by First")
+
+    IsFindBot = False
+    time.sleep(random.random()*0.01)
+    #오토 리미트 주문 데이터가 있는 모든 봇을 순회하며 처리한다!!
+    for botOrderPath in BotOrderPathList:
+
+        #이 botOrderPath는 각 봇의 고유한 경로 (리미트 오토 주문들이 저장되어 있는 파일 경로)
+        print("----->" , botOrderPath)
+
+        AutoOrderList = list()
+
+        try:
+            with open(botOrderPath, 'r') as json_file:
+                AutoOrderList = json.load(json_file)
+
+        except Exception as e:
+            print("Exception by First")
+
+
+        #해당 봇의 읽어온 주문 데이터들을 순회합니다.
+        for AutoLimitData in AutoOrderList:
+
+            if AutoLimitData['BotName'] == bot_name:
+                print("DELETE ", bot_name , " ORDER ->" , AutoLimitData['Id'])
+                DelAutoLimitOrder(AutoLimitData['Id'])
+                IsFindBot = True
+        
+
+        if IsFindBot == True:
+            break
+
+
+
+
+
+
+
 
 
 ####################################################################################################################

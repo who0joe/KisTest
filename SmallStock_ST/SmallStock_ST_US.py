@@ -6,12 +6,6 @@ import pprint
 import time
 #import line_alert
 
-############################
-# 통합 증거금 계좌 사용시 예입니다 #
-# 다 동일한데 일부분이 변경되었어요 #
-# 통합 증거금 으로 검색해보세요 #
-# 변경된 부분을 체크하실 수 있어요 #
-############################
 
 
 #계좌 선택.. "VIRTUAL" 는 모의 계좌!
@@ -41,7 +35,7 @@ PortfolioName = "소형주퀀트_전략US"
 
 
 #전제는 크롭탭에 주말 빼고 UTC 0시 기준 16시/ 우리나라 시간 새벽1시 정각에 해당 봇이 돈다고 가정!
-# 0 16 * * 1-5 python3 /var/autobot/Static_Asset_US.py 
+# 0 16 * * 1-5 python3 /Users/TY/Documents/class101/Static_Asset_US.py 
 
 
 
@@ -54,7 +48,7 @@ Is_Rebalance_Go = False
 YMDict = dict()
 
 #파일 경로입니다.
-asset_tym_file_path = "/var/autobot/UsSmallStockST_YM" + BOT_NAME + ".json"
+asset_tym_file_path = "/Users/TY/Documents/class101/UsSmallStockST_YM" + BOT_NAME + ".json"
 
 try:
     with open(asset_tym_file_path, 'r') as json_file:
@@ -98,7 +92,7 @@ else:
     print("Market Is Close!!!!!!!!!!!")
     #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
     #if Is_Rebalance_Go == True:
-     #   line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 닫혀서 포트폴리오 리밸런싱 불가능!!")
+    #    line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 닫혀서 포트폴리오 리밸런싱 불가능!!")
 
 
 
@@ -109,11 +103,9 @@ else:
 #####################################################################################################################################
 
 
-###############################
-# 통합 증거금 계좌 사용시 수정된 부분 #
-###############################
+
 #계좌 잔고를 가지고 온다!
-Balance = Common.GetBalanceKrwTotal()
+Balance = KisUS.GetBalance()
 
 
 print("--------------내 보유 잔고---------------------")
@@ -127,7 +119,7 @@ InvestRate = 0.1
 #기준이 되는 내 총 평가금액에서 투자비중을 곱해서 나온 포트폴리오에 할당된 돈!!
 TotalMoney = float(Balance['TotalMoney']) * InvestRate
 
-print("총 포트폴리오에 할당된 투자 가능 금액 : ", format(round(TotalMoney), ','))
+print("총 포트폴리오에 할당된 투자 가능 금액 : $", TotalMoney)
 
 
 
@@ -137,7 +129,7 @@ print("총 포트폴리오에 할당된 투자 가능 금액 : ", format(round(T
 
 TargetStockList = list()
 #파일 경로입니다.
-us_file_path = "/var/autobot/UsStockDataList.json"
+us_file_path = "/Users/TY/Documents/class101/UsStockDataList.json"
 
 try:
     #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 
@@ -270,7 +262,7 @@ for PickStock in FinalTopList:
 #소형주 퀀트전략으로 투자하고 있는 주식 종목코드 리스트를 저장할 파일 
 USSmallStockSTList = list()
 #파일 경로입니다.
-small_stock_file_path = "/var/autobot/UsSmallStockSTList.json"
+small_stock_file_path = "/Users/TY/Documents/class101/UsSmallStockSTList.json"
 
 try:
     with open(small_stock_file_path, 'r') as json_file:
@@ -320,11 +312,8 @@ pprint.pprint(MyPortfolioList)
 ##########################################################
 
 print("--------------내 보유 주식---------------------")
-###############################
-# 통합 증거금 계좌 사용시 수정된 부분 #
-# 주식 잔고도 KRW 로 가져옵니다    #
-###############################
-MyStockList = KisUS.GetMyStockList("KRW")
+#그리고 현재 이 계좌에서 보유한 주식 리스트를 가지고 옵니다!
+MyStockList = KisUS.GetMyStockList()
 pprint.pprint(MyStockList)
 print("--------------------------------------------")
 ##########################################################
@@ -408,12 +397,8 @@ for stock_info in MyPortfolioList:
 
                 #그래서 그 갭만큼의 금액을 구한다
                 GapMoney = TotalMoney * abs(GapRate) 
-                
-                ########################################################
-                # 통합 증거금 계좌 사용시 수정된 부분 현재가(달러)에 환율을 곱해줍니다 #
-                ########################################################
                 #현재가로 나눠서 몇주를 매매해야 되는지 계산한다
-                GapAmt = GapMoney / (CurrentPrice * float(KisUS.GetExrt()))
+                GapAmt = GapMoney / CurrentPrice
 
                 #수량이 1보다 커야 리밸러싱을 할 수 있다!! 즉 그 전에는 리밸런싱 불가 
                 if GapAmt >= 1.0:
@@ -443,11 +428,9 @@ for stock_info in MyPortfolioList:
             #잔고가 없다면 첫 매수다! 비중대로 매수할 총 금액을 계산한다 
             BuyMoney = TotalMoney * stock_target_rate
 
-            ########################################################
-            # 통합 증거금 계좌 사용시 수정된 부분 현재가(달러)에 환율을 곱해줍니다 #
-            ########################################################
+
             #매수할 수량을 계산한다!
-            BuyAmt = int(BuyMoney / (CurrentPrice * float(KisUS.GetExrt())))
+            BuyAmt = int(BuyMoney / CurrentPrice)
 
             #포트폴리오에 들어간건 일단 무조건 1주를 사주자... 아니라면 아래 2줄 주석처리
         # if BuyAmt <= 0:
@@ -459,17 +442,16 @@ for stock_info in MyPortfolioList:
         
     
         
-
         
     #라인 메시지랑 로그를 만들기 위한 문자열 
     line_data =  (">> " + stock_code + " << \n비중: " + str(round(stock_now_rate * 100.0,2)) + "/" + str(round(stock_target_rate * 100.0,2)) 
-    + "% \n수익: " + str(format(round(stock_revenue_money), ',')) + "("+ str(round(stock_revenue_rate,2)) 
-    + "%) \n총평가금액: " + str(format(round(stock_eval_totalmoney), ',')) 
+    + "% \n수익: $" + str(stock_revenue_money) + "("+ str(round(stock_revenue_rate,2)) 
+    + "%) \n총평가금액: $" + str(round(stock_eval_totalmoney,2)) 
     + "\n리밸런싱수량: " + str(stock_info['stock_rebalance_amt']) + "\n----------------------\n")
 
     #만약 아래 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
     #if Is_Rebalance_Go == True:
-     #   line_alert.SendMessage(line_data)
+    #    line_alert.SendMessage(line_data)
     strResult += line_data
 
 
@@ -477,7 +459,8 @@ for stock_info in MyPortfolioList:
 ##########################################################
 
 print("--------------리밸런싱 해야 되는 수량-------------")
-data_str = "\n" + PortfolioName + "\n" +  strResult + "\n포트폴리오할당금액: " + str(format(round(TotalMoney), ',')) + "\n매수한자산총액: " + str(format(round(total_stock_money), ',') )
+
+data_str = "\n" + PortfolioName + "\n" +  strResult + "\n포트폴리오할당금액: $" + str(round(TotalMoney,2)) + "\n매수한자산총액: $" + str(round(total_stock_money,2))
 
 #결과를 출력해 줍니다!
 print(data_str)
@@ -488,7 +471,7 @@ print(data_str)
     
 #만약 위의 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
 #if Is_Rebalance_Go == True:
-#    line_alert.SendMessage("\n포트폴리오할당금액: " + str(format(round(TotalMoney), ',')) + "\n매수한자산총액: " + str(format(round(total_stock_money), ',') ))
+    #line_alert.SendMessage("\n포트폴리오할당금액: $" + str(round(TotalMoney,2)) + "\n매수한자산총액: $" + str(round(total_stock_money,2)))
 
 
 

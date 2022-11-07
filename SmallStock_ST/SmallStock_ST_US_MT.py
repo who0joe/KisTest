@@ -35,7 +35,7 @@ PortfolioName = "소형주퀀트_전략US"
 
 
 #전제는 크롭탭에 주말 빼고 UTC 0시 기준 16시/ 우리나라 시간 새벽1시 정각에 해당 봇이 돈다고 가정!
-# 0 16 * * 1-5 python3 /var/autobot/Static_Asset_US.py 
+# 0 16 * * 1-5 python3 /Users/TY/Documents/class101/Static_Asset_US.py 
 
 
 
@@ -48,7 +48,7 @@ Is_Rebalance_Go = False
 YMDict = dict()
 
 #파일 경로입니다.
-asset_tym_file_path = "/var/autobot/UsSmallStockST_YM" + BOT_NAME + ".json"
+asset_tym_file_path = "/Users/TY/Documents/class101/UsSmallStockST_YM" + BOT_NAME + ".json"
 
 try:
     with open(asset_tym_file_path, 'r') as json_file:
@@ -136,7 +136,7 @@ StatusCode = "NONE"
 
 MaCheck = dict()
 #파일 경로입니다.
-ma_file_path = "/var/autobot/UsSmallStockMaCheck.json"
+ma_file_path = "/Users/TY/Documents/class101/UsSmallStockMaCheck.json"
 
 try:
     #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 
@@ -245,7 +245,7 @@ else:
     #소형주 퀀트전략으로 투자하고 있는 주식 종목코드 리스트를 저장할 파일 
     USSmallStockSTList = list()
     #파일 경로입니다.
-    small_stock_file_path = "/var/autobot/UsSmallStockSTList.json"
+    small_stock_file_path = "/Users/TY/Documents/class101/UsSmallStockSTList.json"
 
     try:
         with open(small_stock_file_path, 'r') as json_file:
@@ -288,7 +288,7 @@ else:
 
         TargetStockList = list()
         #파일 경로입니다.
-        us_file_path = "/var/autobot/UsStockDataList.json"
+        us_file_path = "/Users/TY/Documents/class101/UsStockDataList.json"
 
         try:
             #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 

@@ -568,18 +568,20 @@ def GetCurrentPrice(stock_code):
 
 
 #미국 지정가 주문하기!
-def MakeBuyLimitOrderOri(stockcode, amt, price, market):
+def MakeBuyLimitOrderOri(stockcode, amt, price, market, adjustAmt = False):
 
-    try:
-        #가상 계좌는 미지원
-        if Common.GetNowDist() != "VIRTUAL":
-            #매수 가능한수량으로 보정
-            amt = AdjustPossibleAmt(stockcode, amt)
+    #매수가능 수량으로 보정할지 여부
+    if adjustAmt == True:
+        try:
+            #가상 계좌는 미지원
+            if Common.GetNowDist() != "VIRTUAL":
+                #매수 가능한수량으로 보정
+                amt = AdjustPossibleAmt(stockcode, amt)
 
-    except Exception as e:
-        print("Exception")
+        except Exception as e:
+            print("Exception")
 
-    
+        
 
 
     time.sleep(0.2)
@@ -632,7 +634,10 @@ def MakeBuyLimitOrderOri(stockcode, amt, price, market):
     else:
         print("Error Code : " + str(res.status_code) + " | " + res.text)
         return None
-        
+
+
+
+
 #미국 지정가 주문하기!
 def MakeSellLimitOrderOri(stockcode, amt, price, market):
 
@@ -690,17 +695,18 @@ def MakeSellLimitOrderOri(stockcode, amt, price, market):
         return None
 
 #미국 지정가 주문하기! 마켓을 모를 경우 자동으로 뒤져서!
-def MakeBuyLimitOrder(stockcode, amt, price):
+def MakeBuyLimitOrder(stockcode, amt, price ,adjustAmt = False):
 
-    try:
-        #가상 계좌는 미지원
-        if Common.GetNowDist() != "VIRTUAL":
-            #매수 가능한수량으로 보정
-            amt = AdjustPossibleAmt(stockcode, amt)
+    if adjustAmt == True:
+        try:
+            #가상 계좌는 미지원
+            if Common.GetNowDist() != "VIRTUAL":
+                #매수 가능한수량으로 보정
+                amt = AdjustPossibleAmt(stockcode, amt)
 
 
-    except Exception as e:
-        print("Exception")
+        except Exception as e:
+            print("Exception")
 
 
     
@@ -758,6 +764,7 @@ def MakeBuyLimitOrder(stockcode, amt, price):
     else:
         print("Error Code : " + str(res.status_code) + " | " + res.text)
         return None
+        
         
 #미국 지정가 주문하기! 마켓을 모를 경우 자동으로 뒤져서!
 def MakeSellLimitOrder(stockcode, amt, price):
