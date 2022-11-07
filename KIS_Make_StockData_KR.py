@@ -6,7 +6,7 @@ import json
 import time
 import KIS_API_Helper_KR as KisKR
 
-
+import pandas as pd
 
 
 Common.SetChangeMode("REAL")
