@@ -1351,6 +1351,29 @@ def CancelAllOrders(stockcode = "", side = "ALL"):
         pprint.pprint(CancelModifyOrder(order['OrderStock'],order['OrderNum'],order['OrderNum2'],order['OrderAmt'],order['OrderAvgPrice']))
 
 
+
+#시장가 주문 정보를 읽어서 체결 평균가를 리턴! 에러나 못가져오면 현재가를 리턴!
+def GetMarketOrderPrice(stockcode,ResultOrder):
+    time.sleep(0.2)
+    
+    OrderList = GetOrderList(stockcode)
+    
+    OrderDonePrice = 0
+    
+    #넘어온 주문정보와 일치하는 주문을 찾아서 평균 체결가를 세팅!
+    for orderInfo in OrderList:
+        if orderInfo['OrderNum'] == ResultOrder['OrderNum'] and float(orderInfo['OrderNum2']) == float(ResultOrder['OrderNum2']):
+            OrderDonePrice = int(orderInfo['OrderAvgPrice'])
+            break
+        
+    #혹시나 없다면 현재가로 셋팅!
+    if OrderDonePrice == 0:
+        OrderDonePrice = GetCurrentPrice(stockcode)
+        
+    return OrderDonePrice
+        
+
+
 ############################################################################################################################################################
     
 #p_code -> D:일, W:주, M:월, Y:년
