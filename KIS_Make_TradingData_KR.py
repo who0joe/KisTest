@@ -3,7 +3,7 @@
 import KIS_Common as Common
 import pprint
 import json
-#import line_alert #라인 메세지를 보내기 위함!
+import line_alert #라인 메세지를 보내기 위함!
 
 
 Common.SetChangeMode("VIRTUAL")
@@ -23,7 +23,7 @@ except Exception as e:
 
 
 
-#line_alert.SendMessage("Make Trading Data Korea Start!!")
+line_alert.SendMessage("Make Trading Data Korea Start!!")
 
 
 KrTradingDataList = list()
@@ -170,6 +170,49 @@ for stock_code in KoreaStockList:
             
         ############################################################################# 
         
+        
+        ############################## MACD #######################################
+        #현재 종가 MACD
+        try:
+            MACD_0 = Common.GetMACD(df,-1)
+            TradingDataDict['StockMACD_macd_0'] = MACD_0['macd']
+            TradingDataDict['StockMACD_macd_signal_0'] = MACD_0['macd_siginal']
+            TradingDataDict['StockMACD_ocl_0'] = MACD_0['ocl']
+            
+        except Exception as e:
+            TradingDataDict['StockMACD_macd_0'] = 0
+            TradingDataDict['StockMACD_macd_signal_0'] = 0
+            TradingDataDict['StockMACD_ocl_0'] = 0
+            
+            
+        #그전 종가 기준
+        try:
+            MACD_1 = Common.GetMACD(df,-2)
+            TradingDataDict['StockMACD_macd_1'] = MACD_1['macd']
+            TradingDataDict['StockMACD_macd_signal_1'] = MACD_1['macd_siginal']
+            TradingDataDict['StockMACD_ocl_1'] = MACD_1['ocl']
+            
+        except Exception as e:
+            TradingDataDict['StockMACD_macd_1'] = 0
+            TradingDataDict['StockMACD_macd_signal_1'] = 0
+            TradingDataDict['StockMACD_ocl_1'] = 0
+            
+        #그전 종가 기준
+        try:
+            MACD_2 = Common.GetMACD(df,-3)
+            TradingDataDict['StockMACD_macd_2'] = MACD_2['macd']
+            TradingDataDict['StockMACD_macd_signal_2'] = MACD_2['macd_siginal']
+            TradingDataDict['StockMACD_ocl_2'] = MACD_2['ocl']
+            
+        except Exception as e:
+            TradingDataDict['StockMACD_macd_2'] = 0
+            TradingDataDict['StockMACD_macd_signal_2'] = 0
+            TradingDataDict['StockMACD_ocl_2'] = 0
+            
+            
+        ############################################################################# 
+
+
         KrTradingDataList.append(TradingDataDict)
         
         pprint.pprint(TradingDataDict)
@@ -193,5 +236,5 @@ with open(kr_data_file_path, 'w') as outfile:
     json.dump(KrTradingDataList, outfile)
 
 
-#line_alert.SendMessage("Make Stock Trading Data Korea Done!!" + str(len(KrTradingDataList)))
+line_alert.SendMessage("Make Stock Trading Data Korea Done!!" + str(len(KrTradingDataList)))
 

@@ -3,7 +3,7 @@ import KIS_API_Helper_US as KisUS
 import json
 import pandas as pd
 import pprint
-import line_alert
+import line_notify as line_alert
 
 Common.SetChangeMode("VIRTUAL")
 

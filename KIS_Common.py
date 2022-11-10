@@ -944,3 +944,96 @@ def GetBB(ohlcv,period,st,uni = 2.0):
     dic_bb['lower'] = float(bb_center - band1)
 
     return dic_bb
+
+
+
+
+#일목 균형표의 각 데이타를 리턴한다 첫번째: 분봉/일봉 정보, 두번째: 기준 날짜
+def GetIC(ohlcv,st):
+
+    high_prices = ohlcv['high']
+    close_prices = ohlcv['close']
+    low_prices = ohlcv['low']
+
+
+    nine_period_high =  ohlcv['high'].shift(-2-st).rolling(window=9).max()
+    nine_period_low = ohlcv['low'].shift(-2-st).rolling(window=9).min()
+    ohlcv['conversion'] = (nine_period_high + nine_period_low) /2
+    
+    period26_high = high_prices.shift(-2-st).rolling(window=26).max()
+    period26_low = low_prices.shift(-2-st).rolling(window=26).min()
+    ohlcv['base'] = (period26_high + period26_low) / 2
+    
+    ohlcv['sunhang_span_a'] = ((ohlcv['conversion'] + ohlcv['base']) / 2).shift(26)
+    
+    
+    period52_high = high_prices.shift(-2-st).rolling(window=52).max()
+    period52_low = low_prices.shift(-2-st).rolling(window=52).min()
+    ohlcv['sunhang_span_b'] = ((period52_high + period52_low) / 2).shift(26)
+    
+    
+    ohlcv['huhang_span'] = close_prices.shift(-26)
+
+
+    nine_period_high_real =  ohlcv['high'].rolling(window=9).max()
+    nine_period_low_real = ohlcv['low'].rolling(window=9).min()
+    ohlcv['conversion'] = (nine_period_high_real + nine_period_low_real) /2
+    
+    period26_high_real = high_prices.rolling(window=26).max()
+    period26_low_real = low_prices.rolling(window=26).min()
+    ohlcv['base'] = (period26_high_real + period26_low_real) / 2
+    
+
+
+    
+    dic_ic = dict()
+
+    dic_ic['conversion'] = ohlcv['conversion'].iloc[st]
+    dic_ic['base'] = ohlcv['base'].iloc[st]
+    dic_ic['huhang_span'] = ohlcv['huhang_span'].iloc[-27]
+    dic_ic['sunhang_span_a'] = ohlcv['sunhang_span_a'].iloc[-1]
+    dic_ic['sunhang_span_b'] = ohlcv['sunhang_span_b'].iloc[-1]
+
+
+  
+
+    return dic_ic
+
+
+
+
+#MACD의 12,26,9 각 데이타를 리턴한다 첫번째: 분봉/일봉 정보, 두번째: 기준 날짜
+def GetMACD(ohlcv,st):
+    macd_short, macd_long, macd_signal=12,26,9
+
+    ohlcv["MACD_short"]=ohlcv["close"].ewm(span=macd_short).mean()
+    ohlcv["MACD_long"]=ohlcv["close"].ewm(span=macd_long).mean()
+    ohlcv["MACD"]=ohlcv["MACD_short"] - ohlcv["MACD_long"]
+    ohlcv["MACD_signal"]=ohlcv["MACD"].ewm(span=macd_signal).mean() 
+
+    dic_macd = dict()
+    
+    dic_macd['macd'] = ohlcv["MACD"].iloc[st]
+    dic_macd['macd_siginal'] = ohlcv["MACD_signal"].iloc[st]
+    dic_macd['ocl'] = dic_macd['macd'] - dic_macd['macd_siginal']
+
+    return dic_macd
+
+
+
+#스토캐스틱 %K %D 값을 구해준다 첫번째: 분봉/일봉 정보, 두번째: 기간, 세번째: 기준 날짜
+def GetStoch(ohlcv,period,st):
+
+    dic_stoch = dict()
+
+    ndays_high = ohlcv['high'].rolling(window=period, min_periods=1).max()
+    ndays_low = ohlcv['low'].rolling(window=period, min_periods=1).min()
+    fast_k = (ohlcv['close'] - ndays_low)/(ndays_high - ndays_low)*100
+    slow_d = fast_k.rolling(window=3, min_periods=1).mean()
+
+    dic_stoch['fast_k'] = fast_k.iloc[st]
+    dic_stoch['slow_d'] = slow_d.iloc[st]
+
+    return dic_stoch
+
+
