@@ -1,10 +1,12 @@
+# -*- coding: utf-8 -*-
+
+
 import KIS_Common as Common
 import KIS_API_Helper_US as KisUS
 import KIS_API_Helper_KR as KisKR
 
 import pprint
 import time
-
 
 import json
 import pandas as pd
@@ -16,7 +18,7 @@ from pykrx import stock
 #REAL 실계좌 VIRTUAL 모의 계좌
 Common.SetChangeMode("VIRTUAL") 
 
-'''
+
 #현재 장이 열렸는지 여부
 if KisKR.IsMarketOpen() == True:
     print("Maket is Open!!")
@@ -24,12 +26,16 @@ else:
     print("Maket is Closed!!")
 
 
-
 print("                                     ")
 print("------------------------------------")
 print("                                     ")
 
 
+#######################################################################################################
+
+# 잔고 확인 및 현재가 확인
+
+'''
 #내 잔고 확인
 #pprint.pprint(KisUS.GetBalance())
 pprint.pprint(KisKR.GetBalance())
@@ -40,22 +46,27 @@ pprint.pprint(KisKR.GetBalance())
 print("                                     ")
 print("------------------------------------")
 print("                                     ")
-'''
+
+
+
+
 #내 보유 주식 리스트 확인
 pprint.pprint(KisKR.GetMyStockList())
-
-
 
 print("                                     ")
 print("------------------------------------")
 print("                                     ")
+'''
+
+
+
 
 '''
-stock_code = "005930" #애플 종목코드
+stock_code = "005930" #삼성전자 종목코드
 
 current_price = KisKR.GetCurrentPrice(stock_code)
 
-#애플의 현재 가격 
+#삼성전자 의 현재 가격 
 print(current_price)
 
 
@@ -63,9 +74,15 @@ print("                                     ")
 print("------------------------------------")
 print("                                     ")
 
+'''
 
+########################################################################################################
 
-#애플 1주 현재가로 지정가 매수
+#주문 TEST
+
+'''
+
+#삼성전자 1주 현재가로 지정가 매수
 pprint.pprint(KisKR.MakeBuyLimitOrder(stock_code,1,current_price))
 
 print("                                     ")
@@ -78,7 +95,7 @@ print("                                     ")
 
 buy_price = current_price * 1.1
 
-#애플 2주를 현재가보다 10%나 높은금액에 매수하겠다고 주문을 넣으면??
+#삼성전자 2주를 현재가보다 10%나 높은금액에 매수하겠다고 주문을 넣으면??
 pprint.pprint(KisKR.MakeBuyLimitOrder(stock_code,2,buy_price))
 #바로 주문이 체결되는데 시장가로 체결되는걸 볼 수 있음
 
@@ -87,9 +104,9 @@ print("------------------------------------")
 print("                                     ")
 
 
+
 #모의 계좌는 지연 체결이 되며 3초정도 기다렸다고 주문이 완전히 체결된다는 보장은 없어요!!
 time.sleep(3.0)
-
 
 
 sell_price = current_price * 1.1
@@ -100,8 +117,6 @@ pprint.pprint(KisKR.MakeSellLimitOrder(stock_code,1,sell_price))
 print("                                     ")
 print("------------------------------------")
 print("                                     ")
-
-
 
 
 
@@ -127,6 +142,8 @@ print("                                     ")
 print("------------------------------------")
 print("                                     ")
 
+
+
 ##미체결 모두 취소
 time.sleep(5.0)
 pprint.pprint(KisKR.CancelAllOrders("","ALL"))
@@ -145,7 +162,11 @@ print("---------잔고 전량매도완료------------")
 print("                                     ")
 
 '''
+
 #########################################################################################################
+
+# 캔들 데이터 불러오기
+
 
 '''
 
@@ -228,8 +249,6 @@ pprint.pprint(Common.GetOhlcv2("KR","005930"))
 
 
 
-
-
 print("                                     ")
 print("----------애플 일봉 가져오기--------------")
 print("                                     ")
@@ -254,6 +273,8 @@ pprint.pprint(Common.GetOhlcv2("US","AAPL"))
 
 
 ############################################################################################################################
+
+
 # 종목 코드에 맞는 종목 이름 불러오기
 
 '''
@@ -277,6 +298,8 @@ for stock_code in KoreaStockList:
 '''
 
 ####################################################################################################
+
+# 종목리스트를 읽고 조건에 맞는 종목 불러오기
 
 '''
 TargetStockList = list()
@@ -316,9 +339,11 @@ pprint.pprint(df[0:20])
 
 ####################################################################################################
 
-'''
+# 네이버 크롤링 dfs[4]가 영업이익,ROE,PER 등.. 있는 테이블 
 
-stockcode = "224060"
+
+
+stockcode = "000660"
 
 url = "https://finance.naver.com/item/main.naver?code=" + stockcode
 dfs = pd.read_html(url,encoding='euc-kr')
@@ -340,13 +365,13 @@ for key in data_keys:
     print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 
 
-'''
+
 
 #############################################################################################
 
-
-
 '''
+
+
 #코스닥 지수 확인
 for index_v in stock.get_index_ticker_list(market='KOSDAQ'): #KOSPI 지수도 확인 가능!
     print(index_v, stock.get_index_ticker_name(index_v))
@@ -357,11 +382,11 @@ print("-----------------------------------------------------------------")
 for index_v in stock.get_index_ticker_list(market='KOSPI'): #KOSPI 지수도 확인 가능!
     print(index_v, stock.get_index_ticker_name(index_v))
 
+
 '''
 
-
 #################################################################################################
-
+'''
 stock_code = "069500"
 
 CurrentPrice = KisKR.GetCurrentPrice(stock_code)
@@ -393,7 +418,7 @@ Common.DelAutoLimitOrder('REAL2MY_PENSIONKR2612209125200000432650959421015785.93
 #봇 이름에 해당하는 모든 주문 취소 및 자동시스템에서 주문 삭제 예시 
 Common.AllDelAutoLimitOrder("MY_PENSION")
 
-
+'''
 
 
 

@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import pprint
 import time
-#import line_alert
+import line_alert
 
 ############################
 # 통합 증거금 계좌 사용시 예입니다 #
@@ -41,7 +41,7 @@ PortfolioName = "소형주퀀트_전략US"
 
 
 #전제는 크롭탭에 주말 빼고 UTC 0시 기준 16시/ 우리나라 시간 새벽1시 정각에 해당 봇이 돈다고 가정!
-# 0 16 * * 1-5 python3 /Users/TY/Documents/class101/Static_Asset_US.py 
+# 0 16 * * 1-5 python3 /var/autobot/Static_Asset_US.py 
 
 
 
@@ -54,7 +54,7 @@ Is_Rebalance_Go = False
 YMDict = dict()
 
 #파일 경로입니다.
-asset_tym_file_path = "/Users/TY/Documents/class101/UsSmallStockST_YM" + BOT_NAME + ".json"
+asset_tym_file_path = "/var/autobot/UsSmallStockST_YM" + BOT_NAME + ".json"
 
 try:
     with open(asset_tym_file_path, 'r') as json_file:
@@ -92,13 +92,13 @@ IsMarketOpen = KisUS.IsMarketOpen()
 if IsMarketOpen == True:
     print("Market Is Open!!!!!!!!!!!")
     #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
-    #if Is_Rebalance_Go == True:
-    #    line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 열려서 포트폴리오 리밸런싱 가능!!")
+    if Is_Rebalance_Go == True:
+       line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 열려서 포트폴리오 리밸런싱 가능!!")
 else:
     print("Market Is Close!!!!!!!!!!!")
     #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
-    #if Is_Rebalance_Go == True:
-    #    line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 닫혀서 포트폴리오 리밸런싱 불가능!!")
+    if Is_Rebalance_Go == True:
+       line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 닫혀서 포트폴리오 리밸런싱 불가능!!")
 
 
 
@@ -141,7 +141,7 @@ StatusCode = "NONE"
 
 MaCheck = dict()
 #파일 경로입니다.
-ma_file_path = "/Users/TY/Documents/class101/UsSmallStockMaCheck.json"
+ma_file_path = "/var/autobot/UsSmallStockMaCheck.json"
 
 try:
     #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 
@@ -213,7 +213,7 @@ if StatusCode != "ST_FIRST":
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         status_mst = "20일선 위로 지수가 올라왔습니다. 조건에 맞는 종목으로 매수 합니다!"
         print(status_mst)
-        #line_alert.SendMessage(status_mst)
+        line_alert.SendMessage(status_mst)
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
 
@@ -232,7 +232,7 @@ if StatusCode == "ST_FIRST" and IsNowMaUp == False:
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
     status_mst = "처음 전략을 실행해 매수해야 하지만 S&P500 지수가 20일 선 아래여서 동작하지 않습니다!"
     print(status_mst)
-    #line_alert.SendMessage(status_mst)
+    line_alert.SendMessage(status_mst)
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
 else:
@@ -250,7 +250,7 @@ else:
     #소형주 퀀트전략으로 투자하고 있는 주식 종목코드 리스트를 저장할 파일 
     USSmallStockSTList = list()
     #파일 경로입니다.
-    small_stock_file_path = "/Users/TY/Documents/class101/UsSmallStockSTList.json"
+    small_stock_file_path = "/var/autobot/UsSmallStockSTList.json"
 
     try:
         with open(small_stock_file_path, 'r') as json_file:
@@ -293,7 +293,7 @@ else:
 
         TargetStockList = list()
         #파일 경로입니다.
-        us_file_path = "/Users/TY/Documents/class101/UsStockDataList.json"
+        us_file_path = "/var/autobot/UsStockDataList.json"
 
         try:
             #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 
@@ -600,8 +600,8 @@ else:
         + "\n리밸런싱수량: " + str(stock_info['stock_rebalance_amt']) + "\n----------------------\n")
 
         #만약 아래 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
-        #if Is_Rebalance_Go == True:
-        #    line_alert.SendMessage(line_data)
+        if Is_Rebalance_Go == True:
+           line_alert.SendMessage(line_data)
         strResult += line_data
 
 
@@ -616,12 +616,12 @@ else:
     print(data_str)
 
     #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
-    #if Is_Rebalance_Go == True:
-    #    line_alert.SendMessage(data_str)
+    if Is_Rebalance_Go == True:
+       line_alert.SendMessage(data_str)
         
     #만약 위의 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
-    #if Is_Rebalance_Go == True:
-    #    line_alert.SendMessage("\n포트폴리오할당금액: " + str(format(round(TotalMoney), ',')) + "\n매수한자산총액: " + str(format(round(total_stock_money), ',') ))
+    if Is_Rebalance_Go == True:
+       line_alert.SendMessage("\n포트폴리오할당금액: " + str(format(round(TotalMoney), ',')) + "\n매수한자산총액: " + str(format(round(total_stock_money), ',') ))
 
 
 

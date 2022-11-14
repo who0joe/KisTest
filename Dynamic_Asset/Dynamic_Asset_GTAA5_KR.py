@@ -6,8 +6,7 @@ import time
 import json
 import pprint
 
-import line_notify as line_alert
-
+import line_notify 
 
 
 #계좌 선택.. "VIRTUAL" 는 모의 계좌!

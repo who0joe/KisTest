@@ -23,6 +23,3 @@ def SendMessage(msg):
         print(ex)
 
 
-
-print("메세지")
-SendMessage("가나다")

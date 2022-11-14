@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 #########REAL##########################################################################################
 
@@ -7,7 +8,7 @@ REAL_APP_SECRET: "SQ739DKHR30orZMXbu4GO9QYqGIArLLqWj/TAD9dvp3S4H5GseCmleLt/Iop4W
 REAL_CANO: "63292471"
 REAL_ACNT_PRDT_CD: "08" 
 
-REAL_TOKEN_PATH: "/Users/TY/Documents/Class101/stock_token_real.json"
+REAL_TOKEN_PATH: "/var/autobot/stock_token_real.json"
 REAL_URL: "https://openapi.koreainvestment.com:9443" 
 
 
@@ -20,7 +21,7 @@ VIRTUAL_APP_SECRET: "+InfY48RCbrdp9nqo8i6pqRIenTtv4PqUdnEAsw8qH3Jt7MnLXOig6lJmin
 VIRTUAL_CANO: "50071792"
 VIRTUAL_ACNT_PRDT_CD: "01" 
 
-VIRTUAL_TOKEN_PATH: "/Users/TY/Documents/Class101/stock_token_virtual.json"
+VIRTUAL_TOKEN_PATH: "/var/autobot/stock_token_virtual.json"
 VIRTUAL_URL: "https://openapivts.koreainvestment.com:29443" #모의투자서비스
 
 

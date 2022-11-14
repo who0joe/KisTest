@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import pprint
 import time
-
+import line_alert
 
 
 
@@ -32,7 +32,7 @@ PortfolioName = "소형주퀀트_전략"
 #####################################################################################################################################
 
 #전제는 크롭탭에 주말 빼고 UTC 0시 기준 16시/ 우리나라 시간 새벽1시 정각에 해당 봇이 돈다고 가정!
-# 0 16 * * 1-5 python3 /Users/TY/Documents/Class101/Static_Asset_US.py 
+# 0 16 * * 1-5 python3 /var/autobot/Static_Asset_US.py 
 
 
 #리밸런싱이 가능한지 여부를 판단!
@@ -43,7 +43,7 @@ Is_Rebalance_Go = False
 YMDict = dict()
 
 #파일 경로입니다.
-asset_tym_file_path = "/Users/TY/Documents/Class101/KrSmallStockST_YM.json"
+asset_tym_file_path = "/var/autobot/KrSmallStockST_YM.json"
 try:
     with open(asset_tym_file_path, 'r') as json_file:
         YMDict = json.load(json_file)
@@ -78,10 +78,17 @@ IsMarketOpen = KisKR.IsMarketOpen()
 
 if IsMarketOpen == True:
     print("Market Is Open!!!!!!!!!!!")
-    
+    #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
+    if Is_Rebalance_Go == True:
+        line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 열려서 포트폴리오 리밸런싱 가능!!")
 else:
     print("Market Is Close!!!!!!!!!!!")
-   
+    #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
+    if Is_Rebalance_Go == True:
+        line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 닫혀서 포트폴리오 리밸런싱 불가능!!")
+
+
+
 
 
 
@@ -128,7 +135,7 @@ print("총 포트폴리오에 할당된 투자 가능 금액 : ", format(round(T
 
 TargetStockList = list()
 #파일 경로입니다.
-korea_file_path = "/Users/TY/Documents/class101/KrStockDataList.json"
+korea_file_path = "/var/autobot/KrStockDataList.json"
 
 try:
     #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 
@@ -250,7 +257,7 @@ for PickStock in FinalTopList:
 #소형주 퀀트전략으로 투자하고 있는 주식 종목코드 리스트를 저장할 파일 
 KRSmallStockSTList = list()
 #파일 경로입니다.
-small_stock_file_path = "/Users/TY/Documents/class101/KrSmallStockSTList.json"
+small_stock_file_path = "/var/autobot/KrSmallStockSTList.json"
 
 try:
     with open(small_stock_file_path, 'r') as json_file:
@@ -425,7 +432,17 @@ for stock_info in MyPortfolioList:
             stock_info['stock_rebalance_amt'] = BuyAmt
         
         
-        
+    #라인 메시지랑 로그를 만들기 위한 문자열 
+    line_data =  (">> " + KisKR.GetStockName(stock_code) + "(" + stock_code + ") << \n비중: " + str(round(stock_now_rate * 100.0,2)) + "/" + str(round(stock_target_rate * 100.0,2)) 
+    + "% \n수익: " + str(format(round(stock_revenue_money), ',')) + "("+ str(round(stock_revenue_rate,2)) 
+    + "%) \n총평가금액: " + str(format(round(stock_eval_totalmoney), ',')) 
+    + "\n리밸런싱수량: " + str(stock_info['stock_rebalance_amt']) + "\n----------------------\n")
+
+    #만약 아래 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
+    if Is_Rebalance_Go == True:
+        line_alert.SendMessage(line_data)
+    strResult += line_data
+
         
         
         
@@ -440,12 +457,12 @@ data_str = "\n" + PortfolioName + "\n" +  strResult + "\n포트폴리오할당�
 print(data_str)
 
 #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
-#if Is_Rebalance_Go == True:
-#    line_alert.SendMessage(data_str)
+if Is_Rebalance_Go == True:
+    line_alert.SendMessage(data_str)
     
 #만약 위의 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
-#if Is_Rebalance_Go == True:
-#   line_alert.SendMessage("\n포트폴리오할당금액: " + str(format(round(TotalMoney), ',')) + "\n매수한자산총액: " + str(format(round(total_stock_money), ',') ))
+if Is_Rebalance_Go == True:
+   line_alert.SendMessage("\n포트폴리오할당금액: " + str(format(round(TotalMoney), ',')) + "\n매수한자산총액: " + str(format(round(total_stock_money), ',') ))
 
 
 

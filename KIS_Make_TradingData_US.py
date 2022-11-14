@@ -3,7 +3,7 @@
 import KIS_Common as Common
 import pprint
 import json
-#import line_alert #라인 메세지를 보내기 위함!
+import line_alert #라인 메세지를 보내기 위함!
 
 
 Common.SetChangeMode("VIRTUAL")
@@ -11,7 +11,7 @@ Common.SetChangeMode("VIRTUAL")
 
 USStockList = list()
 #파일 경로입니다.
-US_file_path = "/Users/TY/Documents/class101/UsStockCodeList.json"
+US_file_path = "/var/autobot/UsStockCodeList.json"
 
 try:
     #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 
@@ -23,7 +23,7 @@ except Exception as e:
 
 
 
-#line_alert.SendMessage("Make Trading Data US Start!!")
+line_alert.SendMessage("Make Trading Data US Start!!")
 
 
 UsTradingDataList = list()
@@ -187,11 +187,11 @@ print("--------------------------------------------------------")
 
 
 #파일 경로입니다.
-Us_data_file_path = "/Users/TY/Documents/class101/UsTradingDataList.json"
+Us_data_file_path = "/var/autobot/UsTradingDataList.json"
 #파일에 리스트를 저장합니다
 with open(Us_data_file_path, 'w') as outfile:
     json.dump(UsTradingDataList, outfile)
 
 
-#line_alert.SendMessage("Make Stock Trading Data US Done!!" + str(len(UsTradingDataList)))
+line_alert.SendMessage("Make Stock Trading Data US Done!!" + str(len(UsTradingDataList)))
 

@@ -20,7 +20,7 @@ TargetStockList = ['122630','418660']
 ############# 해당 전략으로 매수한 종목 데이터 리스트 ####################
 InfinityMaDataList = list()
 #파일 경로입니다.
-bot_file_path = "/var/autobot/KrStock_" + BOT_NAME + ".json"
+bot_file_path = "/Users/TY/Documents/class101/KrStock_" + BOT_NAME + ".json"
 
 try:
     #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 

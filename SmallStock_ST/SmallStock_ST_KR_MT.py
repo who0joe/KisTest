@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import pprint
 import time
+import line_alert
 
 
 from pykrx import stock
@@ -45,7 +46,7 @@ PortfolioName = "소형주퀀트_전략"
 
 #전제는 크롭탭 적절한 시간대에 등록하셔서 활용하세요!
 # https://blog.naver.com/zacra/222496979835
-# 0 1 * * 1-5 python3 /Users/TY/Documents/class101/SmallStock_ST_KR_MT.py 
+# 0 1 * * 1-5 python3 /var/autobot/SmallStock_ST_KR_MT.py 
 
 
 #리밸런싱이 가능한지 여부를 판단!
@@ -56,7 +57,7 @@ Is_Rebalance_Go = False
 YMDict = dict()
 
 #파일 경로입니다.
-asset_tym_file_path = "/Users/TY/Documents/class101/KrSmallStockST_YM.json"
+asset_tym_file_path = "/var/autobot/KrSmallStockST_YM.json"
 try:
     with open(asset_tym_file_path, 'r') as json_file:
         YMDict = json.load(json_file)
@@ -85,17 +86,19 @@ else:
 
 
 
-
 #마켓이 열렸는지 여부~!
 IsMarketOpen = KisKR.IsMarketOpen()
 
 if IsMarketOpen == True:
     print("Market Is Open!!!!!!!!!!!")
-    
+    #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
+    if Is_Rebalance_Go == True:
+        line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 열려서 포트폴리오 리밸런싱 가능!!")
 else:
     print("Market Is Close!!!!!!!!!!!")
- 
-
+    #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
+    if Is_Rebalance_Go == True:
+        line_alert.SendMessage(PortfolioName + " (" + strYM + ") 장이 닫혀서 포트폴리오 리밸런싱 불가능!!")
 
 
 
@@ -141,7 +144,7 @@ StatusCode = "NONE"
 
 MaCheck = dict()
 #파일 경로입니다.
-ma_file_path = "/Users/TY/Documents/class101/KrSmallStockMaCheck.json"
+ma_file_path = "/var/autobot/KrSmallStockMaCheck.json"
 
 try:
     #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 
@@ -208,7 +211,7 @@ if StatusCode != "ST_FIRST":
         status_mst = "20일선 아래로 지수가 떨어졌습니다. 전략으로 매수한 모든 종목 매도 합니다!"
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         print(status_mst)
-     
+        line_alert.SendMessage(status_mst)
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
 
@@ -220,7 +223,7 @@ if StatusCode != "ST_FIRST":
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         status_mst = "20일선 위로 지수가 올라왔습니다. 조건에 맞는 종목으로 매수 합니다!"
         print(status_mst)
-       
+        line_alert.SendMessage(status_mst)
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
 
@@ -237,7 +240,7 @@ if StatusCode == "ST_FIRST" and IsNowMaUp == False:
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
     status_mst = "처음 전략을 실행해 매수해야 하지만 코스닥 소형지수 20일 선 아래여서 동작하지 않습니다!"
     print(status_mst)
-  
+    line_alert.SendMessage(status_mst)
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
 else:
@@ -258,7 +261,7 @@ else:
     #소형주 퀀트전략으로 투자하고 있는 주식 종목코드 리스트를 저장할 파일 
     KRSmallStockSTList = list()
     #파일 경로입니다.
-    small_stock_file_path = "/Users/TY/Documents/class101/KrSmallStockSTList.json"
+    small_stock_file_path = "/var/autobot/KrSmallStockSTList.json"
 
     try:
         with open(small_stock_file_path, 'r') as json_file:
@@ -298,7 +301,7 @@ else:
 
         TargetStockList = list()
         #파일 경로입니다.
-        korea_file_path = "/Users/TY/Documents/class101/KrStockDataList.json"
+        korea_file_path = "/var/autobot/KrStockDataList.json"
 
         try:
             #이 부분이 파일을 읽어서 리스트에 넣어주는 로직입니다. 
@@ -575,6 +578,12 @@ else:
         + "% \n수익: " + str(format(round(stock_revenue_money), ',')) + "("+ str(round(stock_revenue_rate,2)) 
         + "%) \n총평가금액: " + str(format(round(stock_eval_totalmoney), ',')) 
         + "\n리밸런싱수량: " + str(stock_info['stock_rebalance_amt']) + "\n----------------------\n")
+     
+        #만약 아래 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
+        if Is_Rebalance_Go == True:
+            line_alert.SendMessage(line_data)
+        strResult += line_data
+
 
        
 
@@ -589,12 +598,12 @@ else:
     print(data_str)
 
     #영상엔 없지만 리밸런싱이 가능할때만 내게 메시지를 보내자!
-    #if Is_Rebalance_Go == True:
-    #    line_alert.SendMessage(data_str)
+    if Is_Rebalance_Go == True:
+        line_alert.SendMessage(data_str)
         
     #만약 위의 한번에 보내는 라인메시지가 짤린다면 아래 주석을 해제하여 개별로 보내면 됩니다
-    # if Is_Rebalance_Go == True:
-    #     line_alert.SendMessage("\n포트폴리오할당금액: " + str(format(round(TotalMoney), ',')) + "\n매수한자산총액: " + str(format(round(total_stock_money), ',') ))
+    if Is_Rebalance_Go == True:
+         line_alert.SendMessage("\n포트폴리오할당금액: " + str(format(round(TotalMoney), ',')) + "\n매수한자산총액: " + str(format(round(total_stock_money), ',') ))
 
 
 
@@ -612,6 +621,7 @@ else:
     #리밸런싱이 가능한 상태이거나 강제 리밸런싱을 진행해야 되는데 장이 열렸을 때!!!
     if (Is_Rebalance_Go == True or NeedForceRebalance == True) and IsMarketOpen == True:
 
+        line_alert.SendMessage(PortfolioName + " (" + strYM + ") 리밸런싱 시작!!")
 
         print("------------------리밸런싱 시작  ---------------------")
         #이제 목표치에 맞게 포트폴리오를 조정하면 되는데
@@ -674,7 +684,7 @@ else:
         #########################################################################################################################
             
 
-
+        line_alert.SendMessage(PortfolioName + " (" + strYM + ") 리밸런싱 시작!!")
         
 
         #########################################################################################################################

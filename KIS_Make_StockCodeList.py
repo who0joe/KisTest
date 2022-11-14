@@ -5,6 +5,9 @@ import json
 
 from pykrx import stock
 
+import line_alert
+
+line_alert.SendMessage("Make Stock Code List Start!!")
 
 KoreaStockList = list()
 
@@ -63,17 +66,19 @@ if Is_Error == True:
 
     result = "First Try Failed But Make Stock Code Done KR: "+ str(len(KoreaStockList))
     print(result)
+    line_alert.SendMessage(result)
 
 
 else:
     result = "Make Stock Code Done KR: "+ str(len(KoreaStockList))
     print(result)
+    line_alert.SendMessage(result)
 
 
 
 
 #파일 경로입니다.
-korea_file_path = "/Users/TY/Documents/class101/KrStockCodeList.json"
+korea_file_path = "/var/autobot/KrStockCodeList.json"
 #파일에 리스트를 저장합니다
 with open(korea_file_path, 'w') as outfile:
     json.dump(KoreaStockList, outfile)
@@ -105,7 +110,7 @@ print(USStockList)
 print("count--> ", len(USStockList))
 
 #파일 경로입니다.
-us_file_path = "/Users/TY/Documents/class101/UsStockCodeList.json"
+us_file_path = "/var/autobot/UsStockCodeList.json"
 #파일에 리스트를 저장합니다
 with open(us_file_path, 'w') as outfile:
     json.dump(USStockList, outfile)
@@ -113,7 +118,7 @@ with open(us_file_path, 'w') as outfile:
 
 result = "Make Stock Code Done US: "+ str(len(USStockList))
 print(result)
-
+line_alert.SendMessage(result)
 
 '''
 조건 : 시총은 50억이상, 영업이익 0 이상(플러스)

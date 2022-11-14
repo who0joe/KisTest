@@ -6,7 +6,7 @@ import time
 import json
 import pprint
 
-import line_notify as line_alert
+import line_alert
 
 
 
