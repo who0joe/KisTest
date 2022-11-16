@@ -1,0 +1,15 @@
+// Reference: https://containers.dev/
+{
+    "name": "kis",
+    "build":{
+        "dockerfile": "Dockerfile"
+    },
+	"extensions": [
+		"ms-python.vscode-pylance",
+		"ms-python.python",
+		"ms-toolsai.jupyter",
+        "ms-toolsai.jupyter-keymap",
+        "PKief.material-icon-theme",
+		"mhutchie.git-graph"
+	]
+}
