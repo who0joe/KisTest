@@ -15,6 +15,7 @@ RUN git config --system core.ignorecase false; \
 RUN python -m pip install --upgrade pip \
     && pip install \
 	numpy pandas \
-	ipykernel ipywidgets
+	ipykernel ipywidgets \
+	pandas_datareader finance-datareader pykrx
 
 CMD [ "/bin/bash" ]
